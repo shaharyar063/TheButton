@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertLinkSchema, insertClickSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { verifyUSDCPayment } from "./contract-utils";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/current-link", async (req, res) => {
@@ -29,10 +30,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: errorMessage });
       }
 
+      console.log(`Verifying transaction: ${validationResult.data.txHash}`);
+      const verification = await verifyUSDCPayment(validationResult.data.txHash);
+      
+      if (!verification.isValid) {
+        console.error(`Transaction verification failed: ${verification.error}`);
+        return res.status(400).json({ 
+          error: verification.error || "Transaction verification failed" 
+        });
+      }
+
+      if (verification.from?.toLowerCase() !== validationResult.data.submittedBy.toLowerCase()) {
+        console.error(`Submitter address mismatch: claimed ${validationResult.data.submittedBy}, actual ${verification.from}`);
+        return res.status(400).json({ 
+          error: "Submitter address does not match transaction sender" 
+        });
+      }
+
+      console.log(`Transaction verified successfully from ${verification.from}`);
       const link = await storage.createLink(validationResult.data);
       res.status(201).json(link);
     } catch (error) {
       console.error("Error creating link:", error);
+      
+      if (error instanceof Error && error.message.includes("duplicate key")) {
+        return res.status(400).json({ 
+          error: "This transaction has already been used to submit a link" 
+        });
+      }
+      
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Failed to create link" 
       });

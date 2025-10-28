@@ -7,7 +7,7 @@ export const links = pgTable("links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   url: text("url").notNull(),
   submittedBy: text("submitted_by").notNull(),
-  txHash: text("tx_hash").notNull(),
+  txHash: text("tx_hash").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

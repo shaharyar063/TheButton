@@ -20,12 +20,14 @@ A Farcaster-integrated mini app where users can pay 1 USDC to submit a mystery l
   - Activity slider showing recent clicks with timestamps
   - Responsive design following Material Design + Web3 patterns
 
-**In Progress**: Backend implementation with Supabase and smart contract integration
+**Complete**: Backend implementation with Supabase and transaction verification
 
 ## Recent Changes
+- 2025-10-28: Fixed Supabase database connection and transaction verification
+- 2025-10-28: Implemented comprehensive USDC payment verification before accepting links
+- 2025-10-28: Updated to use direct USDC transfers instead of smart contract
 - 2025-10-28: Created complete frontend with all components
 - 2025-10-28: Defined database schema for links and clicks
-- 2025-10-28: Created Solidity smart contract for USDC payment handling
 
 ## Project Architecture
 
@@ -45,15 +47,22 @@ A Farcaster-integrated mini app where users can pay 1 USDC to submit a mystery l
   - `clicks` table: Tracks every button click with timestamps
 - **API Routes**:
   - `GET /api/current-link` - Fetches the latest submitted link
-  - `POST /api/links` - Submits new link after USDC payment
+  - `POST /api/links` - Submits new link after USDC payment verification
   - `POST /api/clicks` - Records a click event
   - `GET /api/recent-clicks` - Returns recent click history
+- **Transaction Verification**: 
+  - Verifies transaction exists on Base Sepolia blockchain
+  - Confirms transaction succeeded (not failed/reverted)
+  - Validates USDC transfer to correct owner wallet
+  - Ensures payment amount is at least 1 USDC
 
-### Smart Contract (Solidity)
-- **Contract**: `LinkRevealPayment.sol`
+### Payment System
+- **Method**: Direct USDC transfers (no smart contract required)
 - **Network**: Base Sepolia testnet
-- **Function**: Accepts 1 USDC payment and transfers to owner wallet
+- **USDC Contract**: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
 - **Owner Wallet**: 0x31F02Ed2c900A157C851786B43772F86151C7E34
+- **Amount**: 1 USDC (1,000,000 units with 6 decimals)
+- **Note**: Smart contract code exists in `/contracts` but is not currently deployed or used
 
 ### Database
 - **Provider**: Supabase
@@ -63,11 +72,9 @@ A Farcaster-integrated mini app where users can pay 1 USDC to submit a mystery l
 ## Configuration
 
 ### Environment Variables
-- `SUPABASE_URL` - Supabase project URL
-- `SUPABASE_ANON_KEY` - Supabase anonymous key
+- `DATABASE_URL` - Supabase PostgreSQL connection string (configured)
 - `OWNER_WALLET_ADDRESS` - Wallet to receive USDC payments (0x31F02Ed2c900A157C851786B43772F86151C7E34)
-- `BASE_SEPOLIA_RPC_URL` - RPC endpoint for Base Sepolia
-- `SESSION_SECRET` - Session encryption key (already configured)
+- `BASE_SEPOLIA_RPC_URL` - RPC endpoint for Base Sepolia (defaults to https://sepolia.base.org)
 
 ### Design System
 - **Font**: Inter for UI text, Roboto Mono for addresses
@@ -81,10 +88,13 @@ A Farcaster-integrated mini app where users can pay 1 USDC to submit a mystery l
 - Simple, straightforward UX focused on the core flow
 - Real-time activity feed to show engagement
 
+## Issues Fixed
+1. ✅ Database connection - Switched to Supabase PostgreSQL, data now persists
+2. ✅ Transaction verification - Failed transactions are now rejected before storing
+3. ✅ Payment validation - Verifies USDC amount, recipient, and transaction success
+4. ✅ Error handling - Proper error messages for failed/invalid transactions
+
 ## Next Steps
-1. Implement backend API routes with Supabase integration
-2. Deploy smart contract to Base Sepolia
-3. Connect frontend to backend with Web3 wallet integration
-4. Add Farcaster authentication
-5. Test end-to-end payment and link submission flow
-6. Deploy to production on Base mainnet
+1. Test end-to-end payment and link submission flow with real wallet
+2. Add Farcaster authentication
+3. Deploy to production on Base mainnet

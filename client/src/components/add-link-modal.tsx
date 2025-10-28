@@ -46,6 +46,7 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
         title: "Link submitted!",
         description: "Your link is now live and ready to be revealed.",
       });
+      setIsPaying(false);
       onClose();
       form.reset();
     },
@@ -55,6 +56,7 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
         description: error.message,
         variant: "destructive",
       });
+      setIsPaying(false);
     },
   });
 
@@ -79,7 +81,10 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
 
       const txHash = await sendUSDCPayment("1");
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast({
+        title: "Transaction submitted",
+        description: "Waiting for transaction confirmation...",
+      });
 
       submitLinkMutation.mutate({
         url: data.url,
