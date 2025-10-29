@@ -7,6 +7,8 @@ export const links = pgTable("links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   url: text("url").notNull(),
   submittedBy: text("submitted_by").notNull(),
+  submitterUsername: text("submitter_username"),
+  submitterPfpUrl: text("submitter_pfp_url"),
   txHash: text("tx_hash").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -15,6 +17,8 @@ export const clicks = pgTable("clicks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   linkId: varchar("link_id").references(() => links.id),
   clickedBy: text("clicked_by"),
+  clickerUsername: text("clicker_username"),
+  clickerPfpUrl: text("clicker_pfp_url"),
   userAgent: text("user_agent"),
   clickedAt: timestamp("clicked_at").defaultNow().notNull(),
 });

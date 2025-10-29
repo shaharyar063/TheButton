@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, User, Wallet } from "lucide-react";
+import { LinkIcon, User, Wallet } from "lucide-react";
 import { useWeb3 } from "@/lib/web3-context";
 import { useFarcaster } from "@/lib/farcaster-context";
+import { motion } from "framer-motion";
 
 interface HeaderProps {
   onAddLinkClick: () => void;
@@ -15,39 +16,43 @@ export function Header({ onAddLinkClick }: HeaderProps) {
   const showFarcasterAuth = !isInFrame;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
-      <div className="h-16 px-6 flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-            <svg
-              className="w-5 h-5 text-primary-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-              />
-            </svg>
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight">Link Reveal</h1>
-        </div>
+    <header className="bg-background border-b border-border">
+      <div className="h-20 px-6 flex items-center justify-between max-w-7xl mx-auto">
+        <div className="flex-1" />
 
-        <div className="flex items-center gap-3">
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="perspective-1000"
+        >
           <Button
             onClick={onAddLinkClick}
-            variant="default"
-            size="default"
-            className="gap-2"
+            size="lg"
+            className="relative h-16 px-8 text-lg font-bold shadow-2xl rounded-2xl"
+            style={{
+              transformStyle: "preserve-3d",
+              transform: "translateZ(0)",
+            }}
             data-testid="button-add-link"
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Link</span>
+            <motion.div
+              className="flex items-center gap-3"
+              animate={{
+                rotateY: [0, 5, -5, 0],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <LinkIcon className="w-6 h-6" />
+              <span>Add Your Link</span>
+            </motion.div>
           </Button>
+        </motion.div>
 
+        <div className="flex-1 flex items-center justify-end gap-3">
           {isFarcasterAuth ? (
             <div className="flex items-center gap-2">
               <span className="hidden sm:inline text-sm font-medium text-foreground" data-testid="text-farcaster-username">

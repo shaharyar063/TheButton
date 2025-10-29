@@ -39,7 +39,7 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
   });
 
   const submitLinkMutation = useMutation({
-    mutationFn: async (data: { url: string; txHash: string; submittedBy: string }) => {
+    mutationFn: async (data: { url: string; txHash: string; submittedBy: string; submitterUsername: string | null; submitterPfpUrl: string | null }) => {
       return apiRequest("POST", "/api/links", data);
     },
     onSuccess: () => {
@@ -94,6 +94,8 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
         url: data.url,
         txHash: txHash,
         submittedBy: effectiveAddress!,
+        submitterUsername: farcasterUser?.username || null,
+        submitterPfpUrl: farcasterUser?.pfpUrl || null,
       });
     } catch (error) {
       toast({

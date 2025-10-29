@@ -39,10 +39,10 @@ export class PostgresStorage implements IStorage {
   async createLink(insertLink: InsertLink): Promise<Link> {
     try {
       const result = await pool.query(
-        `INSERT INTO links (url, submitted_by, tx_hash) 
-         VALUES ($1, $2, $3) 
+        `INSERT INTO links (url, submitted_by, submitter_username, submitter_pfp_url, tx_hash) 
+         VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
-        [insertLink.url, insertLink.submittedBy, insertLink.txHash]
+        [insertLink.url, insertLink.submittedBy, insertLink.submitterUsername, insertLink.submitterPfpUrl, insertLink.txHash]
       );
 
       return this.mapLink(result.rows[0]);
@@ -69,10 +69,10 @@ export class PostgresStorage implements IStorage {
   async createClick(insertClick: InsertClick): Promise<Click> {
     try {
       const result = await pool.query(
-        `INSERT INTO clicks (link_id, clicked_by, user_agent) 
-         VALUES ($1, $2, $3) 
+        `INSERT INTO clicks (link_id, clicked_by, clicker_username, clicker_pfp_url, user_agent) 
+         VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
-        [insertClick.linkId, insertClick.clickedBy, insertClick.userAgent]
+        [insertClick.linkId, insertClick.clickedBy, insertClick.clickerUsername, insertClick.clickerPfpUrl, insertClick.userAgent]
       );
 
       return this.mapClick(result.rows[0]);
@@ -87,6 +87,8 @@ export class PostgresStorage implements IStorage {
       id: data.id,
       url: data.url,
       submittedBy: data.submitted_by,
+      submitterUsername: data.submitter_username,
+      submitterPfpUrl: data.submitter_pfp_url,
       txHash: data.tx_hash,
       createdAt: data.created_at,
     };
@@ -97,6 +99,8 @@ export class PostgresStorage implements IStorage {
       id: data.id,
       linkId: data.link_id,
       clickedBy: data.clicked_by,
+      clickerUsername: data.clicker_username,
+      clickerPfpUrl: data.clicker_pfp_url,
       userAgent: data.user_agent,
       clickedAt: data.clicked_at,
     };
