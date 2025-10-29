@@ -12,6 +12,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return domain ? `https://${domain}` : 'http://localhost:5000';
   };
 
+  const svgToPng = async (svg: string): Promise<Buffer | string> => {
+    try {
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+      
+      const { stdout } = await execAsync(`echo '${svg.replace(/'/g, "'\\''")}' | convert svg:- png:-`, {
+        encoding: 'buffer',
+        maxBuffer: 10 * 1024 * 1024
+      });
+      
+      return stdout;
+    } catch (error) {
+      console.error('Error converting SVG to PNG:', error);
+      return svg;
+    }
+  };
+
   app.get("/frame", async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -132,9 +150,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </svg>
     `;
     
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'max-age=10');
-    res.send(svg);
+    const result = await svgToPng(svg);
+    
+    if (Buffer.isBuffer(result)) {
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    } else {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    }
   });
 
   app.post("/api/frame/action", async (req, res) => {
@@ -292,9 +318,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </svg>
     `;
     
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'max-age=10');
-    res.send(svg);
+    const result = await svgToPng(svg);
+    
+    if (Buffer.isBuffer(result)) {
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    } else {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    }
   });
 
   app.get("/api/frame/image/success", async (req, res) => {
@@ -323,9 +357,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </svg>
     `;
     
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'max-age=10');
-    res.send(svg);
+    const result = await svgToPng(svg);
+    
+    if (Buffer.isBuffer(result)) {
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    } else {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    }
   });
 
   app.get("/api/frame/image/error", async (req, res) => {
@@ -354,9 +396,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </svg>
     `;
     
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'max-age=10');
-    res.send(svg);
+    const result = await svgToPng(svg);
+    
+    if (Buffer.isBuffer(result)) {
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    } else {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'max-age=10');
+      res.send(result);
+    }
   });
 
   app.get("/api/events", (req, res) => {
