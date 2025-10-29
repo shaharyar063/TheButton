@@ -16,24 +16,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const baseUrl = getBaseUrl();
     const link = await storage.getCurrentLink();
     
+    if (link) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta property="fc:frame" content="vNext" />
+            <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
+            <meta property="fc:frame:button:1" content="🔗 Open Link" />
+            <meta property="fc:frame:button:1:action" content="link" />
+            <meta property="fc:frame:button:1:target" content="${baseUrl}/api/frame/redirect" />
+            <meta property="og:title" content="Mystery Link Button" />
+            <meta property="og:description" content="Click to open the mystery link!" />
+            <meta property="og:image" content="${baseUrl}/api/frame/image" />
+          </head>
+          <body>
+            <h1>Mystery Link Button</h1>
+            <p>This frame contains a mystery link. Click the button in Farcaster to open it!</p>
+          </body>
+        </html>
+      `);
+    }
+    
     return res.send(`
       <!DOCTYPE html>
       <html>
         <head>
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
-          <meta property="fc:frame:button:1" content="${link ? '🔮 Reveal Mystery Link' : '📭 No Link Yet'}" />
-          <meta property="fc:frame:post_url" content="${baseUrl}/api/frame/action" />
-          <meta property="og:title" content="Link Reveal - Mystery Link Button" />
-          <meta property="og:description" content="Click to reveal the mystery link! Everyone clicks the same button to discover what's hidden." />
+          <meta property="fc:frame:button:1" content="📭 No Link Yet" />
+          <meta property="fc:frame:button:1:action" content="link" />
+          <meta property="fc:frame:button:1:target" content="${baseUrl}" />
+          <meta property="og:title" content="Mystery Link Button" />
+          <meta property="og:description" content="Be the first to add a mystery link!" />
           <meta property="og:image" content="${baseUrl}/api/frame/image" />
         </head>
         <body>
-          <h1>Link Reveal</h1>
-          <p>Click the button to reveal the mystery link!</p>
+          <h1>Mystery Link Button</h1>
+          <p>No link available yet. Visit the app to add one!</p>
         </body>
       </html>
     `);
+  });
+
+  app.get("/api/frame/redirect", async (req, res) => {
+    try {
+      const link = await storage.getCurrentLink();
+      
+      if (!link) {
+        return res.redirect(getBaseUrl());
+      }
+
+      const clickData = {
+        linkId: link.id,
+        clickedBy: 'frame-visitor',
+        clickerUsername: null,
+        clickerPfpUrl: null,
+        userAgent: req.headers["user-agent"] || null,
+      };
+
+      const validationResult = insertClickSchema.safeParse(clickData);
+      
+      if (validationResult.success) {
+        const click = await storage.createClick(validationResult.data);
+        appEvents.emitClickCreated(click);
+        console.log(`🔗 Frame redirect click tracked`);
+      }
+
+      return res.redirect(link.url);
+    } catch (error) {
+      console.error('Error in frame redirect:', error);
+      return res.redirect(getBaseUrl());
+    }
   });
 
   app.get("/api/frame/image", async (req, res) => {
@@ -59,17 +113,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <rect width="1200" height="630" fill="url(#bg)"/>
         
         <text x="600" y="140" font-family="Inter, system-ui, sans-serif" font-size="56" font-weight="700" fill="white" text-anchor="middle">
-          Mystery Link Revealed
+          Mystery Link Button
         </text>
         
         <circle cx="600" cy="350" r="120" fill="url(#button)" filter="url(#shadow)"/>
         
         <text x="600" y="360" font-family="Inter, system-ui, sans-serif" font-size="48" font-weight="700" fill="white" text-anchor="middle">
-          ${hasLink ? '🔮' : '📭'}
+          ${hasLink ? '🔗' : '📭'}
         </text>
         
         <text x="600" y="540" font-family="Inter, system-ui, sans-serif" font-size="36" font-weight="600" fill="white" text-anchor="middle" opacity="0.9">
-          ${hasLink ? 'Click to reveal the link!' : 'No link available yet'}
+          ${hasLink ? 'Click to open the link!' : 'No link available yet'}
         </text>
       </svg>
     `;
