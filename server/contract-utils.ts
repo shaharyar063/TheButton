@@ -18,16 +18,56 @@ export interface TransactionVerification {
   amount?: bigint;
 }
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchTransactionWithRetry(
+  txHash: `0x${string}`,
+  maxRetries: number = 5,
+  baseDelay: number = 2000
+): Promise<{ receipt: any; transaction: any }> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const [receipt, transaction] = await Promise.all([
+        publicClient.getTransactionReceipt({ hash: txHash }),
+        publicClient.getTransaction({ hash: txHash }),
+      ]);
+
+      return { receipt, transaction };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = lastError.message.toLowerCase();
+      
+      const isRetryableError = 
+        errorMessage.includes("not found") ||
+        errorMessage.includes("not available") ||
+        errorMessage.includes("could not find") ||
+        errorMessage.includes("transaction not found") ||
+        errorMessage.includes("receipt not found");
+
+      if (!isRetryableError || attempt === maxRetries - 1) {
+        throw lastError;
+      }
+
+      const delay = baseDelay * Math.pow(1.5, attempt);
+      console.log(`Transaction not found yet, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      await sleep(delay);
+    }
+  }
+
+  throw lastError || new Error("Failed to fetch transaction after retries");
+}
+
 export async function verifyETHPayment(txHash: string): Promise<TransactionVerification> {
   try {
     if (!isValidTxHash(txHash)) {
       return { isValid: false, error: "Invalid transaction hash format" };
     }
 
-    const [receipt, transaction] = await Promise.all([
-      publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` }),
-      publicClient.getTransaction({ hash: txHash as `0x${string}` }),
-    ]);
+    const { receipt, transaction } = await fetchTransactionWithRetry(txHash as `0x${string}`);
 
     if (receipt.status !== "success") {
       return { isValid: false, error: "Transaction failed on blockchain" };
@@ -58,9 +98,18 @@ export async function verifyETHPayment(txHash: string): Promise<TransactionVerif
     };
   } catch (error) {
     console.error("Error verifying transaction:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to verify transaction";
+    
+    if (errorMessage.toLowerCase().includes("not found")) {
+      return { 
+        isValid: false, 
+        error: "Transaction not found on blockchain. Please verify the transaction hash and ensure it's confirmed on Base Mainnet." 
+      };
+    }
+    
     return { 
       isValid: false, 
-      error: error instanceof Error ? error.message : "Failed to verify transaction" 
+      error: errorMessage
     };
   }
 }
