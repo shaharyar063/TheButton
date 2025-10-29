@@ -102,13 +102,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const frameMessage = req.body;
+      const buttonIndex = frameMessage?.untrustedData?.buttonIndex || 1;
       let fid = null;
       let username = null;
       let pfpUrl = null;
+      let verified = false;
       
-      if (frameMessage?.untrustedData?.fid) {
+      if (frameMessage?.trustedData?.messageBytes) {
+        try {
+          const messageBytes = frameMessage.trustedData.messageBytes;
+          const verifyResponse = await fetch('https://hub.pinata.cloud/v1/validateMessage', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+            body: Buffer.from(messageBytes, 'base64'),
+          });
+          
+          const verifyData = await verifyResponse.json();
+          
+          if (verifyData.valid) {
+            verified = true;
+            fid = verifyData.message?.data?.fid;
+            console.log(`✅ Frame message verified for FID: ${fid}`);
+          } else {
+            console.warn('⚠️ Frame message verification failed, using untrusted data');
+          }
+        } catch (error) {
+          console.error('Error verifying frame message:', error);
+        }
+      }
+      
+      if (!verified && frameMessage?.untrustedData?.fid) {
         fid = frameMessage.untrustedData.fid;
-        
+        console.warn(`⚠️ Using unverified FID: ${fid}`);
+      }
+      
+      if (fid) {
         try {
           const response = await fetch(`https://fnames.farcaster.xyz/transfers?fid=${fid}`);
           const data = await response.json();
@@ -128,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const clickData = {
         linkId: link.id,
-        clickedBy: fid ? `fid:${fid}` : 'anonymous',
+        clickedBy: fid ? (verified ? `fid:${fid}` : `fid:${fid}-unverified`) : 'anonymous',
         clickerUsername: username,
         clickerPfpUrl: pfpUrl,
         userAgent: req.headers["user-agent"] || null,
@@ -139,7 +169,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validationResult.success) {
         const click = await storage.createClick(validationResult.data);
         appEvents.emitClickCreated(click);
-        console.log(`✨ Frame click recorded: ${username || fid || 'anonymous'} clicked!`);
+        console.log(`✨ Frame click recorded: ${username || fid || 'anonymous'} clicked! (verified: ${verified})`);
+      }
+
+      if (buttonIndex === 1) {
+        res.setHeader('Location', link.url);
+        return res.status(302).send();
       }
 
       return res.send(`
@@ -149,8 +184,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${baseUrl}/api/frame/image/success" />
             <meta property="fc:frame:button:1" content="🔗 Open Link" />
-            <meta property="fc:frame:button:1:action" content="link" />
-            <meta property="fc:frame:button:1:target" content="${link.url}" />
             <meta property="fc:frame:button:2" content="🔄 Click Again" />
             <meta property="fc:frame:post_url" content="${baseUrl}/api/frame/action" />
           </head>

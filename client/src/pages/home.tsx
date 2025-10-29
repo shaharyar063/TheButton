@@ -6,7 +6,8 @@ import { RevealButton } from "@/components/reveal-button";
 import { AddLinkModal } from "@/components/add-link-modal";
 import { ActivitySlider } from "@/components/activity-slider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, Share2, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWeb3 } from "@/lib/web3-context";
 import { useFarcaster } from "@/lib/farcaster-context";
@@ -66,6 +67,35 @@ export default function Home() {
     }, 500);
   };
 
+  const handleShareToFarcaster = () => {
+    const frameUrl = `${window.location.origin}/frame`;
+    const castText = "Click the mystery button to reveal the link! 🔮";
+    const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(frameUrl)}`;
+    window.open(warpcastUrl, "_blank", "noopener,noreferrer");
+    
+    toast({
+      title: "Opening Warpcast",
+      description: "Share your Frame to Farcaster!",
+    });
+  };
+
+  const handleCopyFrameLink = async () => {
+    const frameUrl = `${window.location.origin}/frame`;
+    try {
+      await navigator.clipboard.writeText(frameUrl);
+      toast({
+        title: "Copied!",
+        description: "Frame link copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Please copy manually: " + frameUrl,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header onAddLinkClick={() => setIsModalOpen(true)} />
@@ -76,6 +106,35 @@ export default function Home() {
           isLoading={linkLoading}
           hasLink={!!currentLink}
         />
+        
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <div className="flex gap-3">
+            <Button
+              onClick={handleShareToFarcaster}
+              variant="default"
+              size="default"
+              className="gap-2"
+              data-testid="button-share-farcaster"
+            >
+              <Share2 className="w-4 h-4" />
+              Share to Farcaster
+            </Button>
+            <Button
+              onClick={handleCopyFrameLink}
+              variant="outline"
+              size="default"
+              className="gap-2"
+              data-testid="button-copy-link"
+            >
+              <Copy className="w-4 h-4" />
+              Copy Frame Link
+            </Button>
+          </div>
+          
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            Share this button as a Farcaster Frame! Anyone who clicks it will see the current mystery link.
+          </p>
+        </div>
         
         {currentLink && (currentLink.submitterUsername || currentLink.submitterPfpUrl) && (
           <div className="mt-8 flex items-center gap-3 text-muted-foreground" data-testid="section-promoted-by">
