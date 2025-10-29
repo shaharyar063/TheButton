@@ -6,6 +6,41 @@ import { fromZodError } from "zod-validation-error";
 import { verifyUSDCPayment } from "./contract-utils";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const getBaseUrl = () => {
+    const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
+    return domain ? `https://${domain}` : 'http://localhost:5000';
+  };
+
+  app.get("/frame", async (req, res) => {
+    const baseUrl = getBaseUrl();
+    const link = await storage.getCurrentLink();
+    
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
+          <meta property="fc:frame:button:1" content="${link ? 'Open App & Reveal' : 'Open App'}" />
+          <meta property="fc:frame:button:1:action" content="link" />
+          <meta property="fc:frame:button:1:target" content="${baseUrl}" />
+          <meta property="og:title" content="Link Reveal - Farcaster Mini App" />
+          <meta property="og:description" content="Pay 1 USDC to submit a mystery link that visitors can reveal" />
+          <meta property="og:image" content="${baseUrl}/api/frame/image" />
+        </head>
+        <body>
+          <h1>Link Reveal</h1>
+          <p>Open the app to reveal the mystery link or submit your own!</p>
+        </body>
+      </html>
+    `);
+  });
+
+  app.get("/api/frame/image", async (req, res) => {
+    const baseUrl = getBaseUrl();
+    res.redirect(`${baseUrl}/favicon.png`);
+  });
+
   app.get("/api/current-link", async (req, res) => {
     try {
       const link = await storage.getCurrentLink();

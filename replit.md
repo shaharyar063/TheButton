@@ -94,7 +94,21 @@ A Farcaster-integrated mini app where users can pay 1 USDC to submit a mystery l
 3. ✅ Payment validation - Verifies USDC amount, recipient, and transaction success
 4. ✅ Error handling - Proper error messages for failed/invalid transactions
 
+## Farcaster Integration
+- ✅ Farcaster Frame support - Frame with link to open the full app
+- ✅ Frame SDK integration - Detects when running in Frame context and shows user profile
+- ✅ Frame metadata endpoint - Proper server-side rendering at `/frame`
+- ✅ User profile display - Shows Farcaster avatar and username when in Frame context
+- ✅ Secure implementation - Frame links to app, no unverified POST endpoints
+
+### Frame Features
+- Frame serves as an entry point to the app in Farcaster feeds
+- When users open the app from a Frame, their Farcaster profile is automatically detected
+- Click tracking records Farcaster FID when available via Frame SDK
+- All sensitive operations (payments, link submission) require proper wallet connection
+- Frame metadata dynamically generated with correct URLs
+
 ## Next Steps
 1. Test end-to-end payment and link submission flow with real wallet
-2. Add Farcaster authentication
-3. Deploy to production on Base mainnet
+2. Deploy to production on Base mainnet
+3. (Optional) Implement standalone Sign In with Farcaster with proper verification

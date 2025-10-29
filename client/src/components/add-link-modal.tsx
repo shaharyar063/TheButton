@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useWeb3 } from "@/lib/web3-context";
-import { Loader2, DollarSign } from "lucide-react";
+import { useFarcaster } from "@/lib/farcaster-context";
+import { Loader2, DollarSign, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,6 +29,7 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
   const [isPaying, setIsPaying] = useState(false);
   const { toast } = useToast();
   const { address, isConnected, sendUSDCPayment } = useWeb3();
+  const { user: farcasterUser, isAuthenticated: isFarcasterAuth } = useFarcaster();
 
   const form = useForm<LinkFormData>({
     resolver: zodResolver(linkFormSchema),
@@ -106,6 +109,19 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
       <DialogContent className="sm:max-w-md" data-testid="modal-add-link">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Add Your Link</DialogTitle>
+          {isFarcasterAuth && farcasterUser && (
+            <DialogDescription className="flex items-center gap-2 pt-2">
+              <Avatar className="w-6 h-6">
+                <AvatarImage src={farcasterUser.pfpUrl} alt={farcasterUser.username} />
+                <AvatarFallback className="bg-primary/10">
+                  <User className="w-3 h-3 text-primary" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-muted-foreground">
+                Posting as @{farcasterUser.username || `fid:${farcasterUser.fid}`}
+              </span>
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pt-4">

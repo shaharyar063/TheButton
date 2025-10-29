@@ -2,17 +2,17 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, User, Wallet } from "lucide-react";
 import { useWeb3 } from "@/lib/web3-context";
+import { useFarcaster } from "@/lib/farcaster-context";
 
 interface HeaderProps {
   onAddLinkClick: () => void;
-  farcasterProfile?: {
-    pfpUrl?: string;
-    username?: string;
-  };
 }
 
-export function Header({ onAddLinkClick, farcasterProfile }: HeaderProps) {
+export function Header({ onAddLinkClick }: HeaderProps) {
   const { address, isConnected, connect, isConnecting } = useWeb3();
+  const { user: farcasterUser, isAuthenticated: isFarcasterAuth, signIn: farcasterSignIn, isInFrame } = useFarcaster();
+
+  const showFarcasterAuth = !isInFrame;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
@@ -36,7 +36,7 @@ export function Header({ onAddLinkClick, farcasterProfile }: HeaderProps) {
           <h1 className="text-xl font-semibold tracking-tight">Link Reveal</h1>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Button
             onClick={onAddLinkClick}
             variant="default"
@@ -48,29 +48,60 @@ export function Header({ onAddLinkClick, farcasterProfile }: HeaderProps) {
             <span className="hidden sm:inline">Add Link</span>
           </Button>
 
-          {!isConnected ? (
-            <Button
-              onClick={connect}
-              disabled={isConnecting}
-              variant="outline"
-              size="default"
-              className="gap-2"
-              data-testid="button-connect-wallet"
-            >
-              <Wallet className="w-4 h-4" />
-              <span className="hidden sm:inline">{isConnecting ? "Connecting..." : "Connect"}</span>
-            </Button>
-          ) : (
+          {isFarcasterAuth ? (
             <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-sm font-mono text-muted-foreground">
-                {address?.slice(0, 6)}...{address?.slice(-4)}
+              <span className="hidden sm:inline text-sm font-medium text-foreground" data-testid="text-farcaster-username">
+                @{farcasterUser?.username || `fid:${farcasterUser?.fid}`}
               </span>
-              <Avatar className="w-10 h-10" data-testid="avatar-wallet">
+              <Avatar className="w-10 h-10" data-testid="avatar-farcaster">
+                <AvatarImage src={farcasterUser?.pfpUrl} alt={farcasterUser?.username} />
                 <AvatarFallback className="bg-primary/10">
-                  <Wallet className="w-5 h-5 text-primary" />
+                  <User className="w-5 h-5 text-primary" />
                 </AvatarFallback>
               </Avatar>
             </div>
+          ) : showFarcasterAuth ? (
+            <Button
+              onClick={farcasterSignIn}
+              variant="outline"
+              size="default"
+              className="gap-2"
+              data-testid="button-farcaster-signin"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-4v-4H7l5-5 5 5h-3v4z"/>
+              </svg>
+              <span className="hidden sm:inline">Sign in with Farcaster</span>
+            </Button>
+          ) : null}
+
+          {!isInFrame && (
+            <>
+              {!isConnected ? (
+                <Button
+                  onClick={connect}
+                  disabled={isConnecting}
+                  variant="ghost"
+                  size="default"
+                  className="gap-2"
+                  data-testid="button-connect-wallet"
+                >
+                  <Wallet className="w-4 h-4" />
+                  <span className="hidden sm:inline">{isConnecting ? "Connecting..." : "Wallet"}</span>
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="hidden sm:inline text-sm font-mono text-muted-foreground" data-testid="text-wallet-address">
+                    {address?.slice(0, 6)}...{address?.slice(-4)}
+                  </span>
+                  <Avatar className="w-9 h-9" data-testid="avatar-wallet">
+                    <AvatarFallback className="bg-muted">
+                      <Wallet className="w-4 h-4 text-muted-foreground" />
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Web3Provider } from "./lib/web3-context";
+import { FarcasterProvider } from "./lib/farcaster-context";
 import Home from "@/pages/home";
 import NotFound from "@/pages/not-found";
 
@@ -19,12 +20,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Web3Provider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </Web3Provider>
+      <FarcasterProvider>
+        <Web3Provider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </Web3Provider>
+      </FarcasterProvider>
     </QueryClientProvider>
   );
 }
