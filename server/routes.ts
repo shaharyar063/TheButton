@@ -13,6 +13,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   app.get("/frame", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     const baseUrl = getBaseUrl();
     const link = await storage.getCurrentLink();
     
