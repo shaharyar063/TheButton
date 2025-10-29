@@ -27,9 +27,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <head>
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
+            <meta property="fc:frame:image:aspect_ratio" content="1.91:1" />
             <meta property="fc:frame:button:1" content="🔗 Open Link" />
             <meta property="fc:frame:button:1:action" content="link" />
             <meta property="fc:frame:button:1:target" content="${link.url}" />
+            <meta property="fc:frame:post_url" content="${baseUrl}/api/frame/action" />
             <meta property="og:title" content="Mystery Link Button" />
             <meta property="og:description" content="Click to open the mystery link!" />
             <meta property="og:image" content="${baseUrl}/api/frame/image" />
@@ -48,9 +50,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <head>
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
+          <meta property="fc:frame:image:aspect_ratio" content="1.91:1" />
           <meta property="fc:frame:button:1" content="📭 No Link Yet" />
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="${baseUrl}" />
+          <meta property="fc:frame:post_url" content="${baseUrl}/api/frame/action" />
           <meta property="og:title" content="Mystery Link Button" />
           <meta property="og:description" content="Be the first to add a mystery link!" />
           <meta property="og:image" content="${baseUrl}/api/frame/image" />
