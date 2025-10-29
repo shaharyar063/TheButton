@@ -51,7 +51,7 @@ export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps)
 
       {hasLink && (
         <p className="text-xs text-muted-foreground text-center max-w-sm">
-          This action is free. The link was submitted by a community member who paid 1 USDC.
+          This action is free. The link was submitted by a community member who paid 0.00001 ETH.
         </p>
       )}
     </div>

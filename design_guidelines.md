@@ -4,7 +4,7 @@
 
 **Selected Approach**: Design System (Function-Differentiated)
 **Primary Reference**: Material Design with Web3 app patterns (Uniswap, Rainbow aesthetic)
-**Justification**: This is a utility-focused tool where clarity, trust, and efficient interaction are paramount. The payment integration (USDC) requires a professional, trustworthy interface that emphasizes functionality over visual flourish.
+**Justification**: This is a utility-focused tool where clarity, trust, and efficient interaction are paramount. The payment integration (ETH) requires a professional, trustworthy interface that emphasizes functionality over visual flourish.
 
 ## Core Design Elements
 
@@ -77,7 +77,7 @@
   - Title: text-xl font-semibold, mb-6
   - Input field: Full-width, border, rounded-lg, p-4, mb-6
   - Submit button: Full-width, prominent, rounded-lg, py-4
-  - Button text: "Post (1 USDC)" with USDC icon/badge
+  - Button text: "Post (0.00001 ETH)"
 
 **5. Activity Feed Slider**
 - Position: Fixed bottom-0, full-width

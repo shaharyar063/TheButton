@@ -16,7 +16,7 @@ A Farcaster-integrated mini app where users can pay 0.00001 ETH to submit a myst
 - ✅ All React components built:
   - Header with Farcaster profile avatar and Add Link button
   - Centered reveal button with beautiful styling and hover effects
-  - Add Link modal with URL input and "Post (1 USDC)" payment button
+  - Add Link modal with URL input and "Post (0.00001 ETH)" payment button
   - Activity slider showing recent clicks with timestamps
   - Responsive design following Material Design + Web3 patterns
 
