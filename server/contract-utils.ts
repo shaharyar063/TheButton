@@ -1,19 +1,13 @@
-import { createPublicClient, http, parseAbi, decodeAbiParameters } from "viem";
-import { baseSepolia } from "viem/chains";
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 
-const USDC_ABI = parseAbi([
-  "function transfer(address to, uint256 amount) external returns (bool)",
-  "event Transfer(address indexed from, address indexed to, uint256 value)",
-]);
-
-const BASE_SEPOLIA_RPC = process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org";
+const BASE_MAINNET_RPC = process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org";
 const OWNER_WALLET = (process.env.OWNER_WALLET_ADDRESS || "0x31F02Ed2c900A157C851786B43772F86151C7E34").toLowerCase();
-const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e".toLowerCase();
-const REQUIRED_AMOUNT = BigInt(1000000);
+const REQUIRED_AMOUNT = BigInt(10000000000000);
 
 export const publicClient = createPublicClient({
-  chain: baseSepolia,
-  transport: http(BASE_SEPOLIA_RPC),
+  chain: base,
+  transport: http(BASE_MAINNET_RPC),
 });
 
 export interface TransactionVerification {
@@ -24,7 +18,7 @@ export interface TransactionVerification {
   amount?: bigint;
 }
 
-export async function verifyUSDCPayment(txHash: string): Promise<TransactionVerification> {
+export async function verifyETHPayment(txHash: string): Promise<TransactionVerification> {
   try {
     if (!isValidTxHash(txHash)) {
       return { isValid: false, error: "Invalid transaction hash format" };
@@ -39,32 +33,8 @@ export async function verifyUSDCPayment(txHash: string): Promise<TransactionVeri
       return { isValid: false, error: "Transaction failed on blockchain" };
     }
 
-    if (transaction.to?.toLowerCase() !== USDC_ADDRESS) {
-      return { isValid: false, error: "Transaction is not to USDC contract" };
-    }
-
-    if (!transaction.input || transaction.input.length < 10) {
-      return { isValid: false, error: "Invalid transaction data" };
-    }
-
-    const functionSelector = transaction.input.slice(0, 10);
-    const transferSelector = "0xa9059cbb";
-
-    if (functionSelector !== transferSelector) {
-      return { isValid: false, error: "Transaction is not a USDC transfer" };
-    }
-
-    const params = `0x${transaction.input.slice(10)}`;
-    const decoded = decodeAbiParameters(
-      [
-        { name: "to", type: "address" },
-        { name: "amount", type: "uint256" },
-      ],
-      params as `0x${string}`
-    );
-
-    const recipientAddress = decoded[0].toLowerCase();
-    const amount = decoded[1];
+    const recipientAddress = transaction.to?.toLowerCase();
+    const amount = transaction.value;
 
     if (recipientAddress !== OWNER_WALLET) {
       return { 
@@ -76,7 +46,7 @@ export async function verifyUSDCPayment(txHash: string): Promise<TransactionVeri
     if (amount < REQUIRED_AMOUNT) {
       return { 
         isValid: false, 
-        error: `Insufficient payment amount. Required: 1 USDC, sent: ${Number(amount) / 1000000} USDC` 
+        error: `Insufficient payment amount. Required: 0.00001 ETH, sent: ${Number(amount) / 1e18} ETH` 
       };
     }
 

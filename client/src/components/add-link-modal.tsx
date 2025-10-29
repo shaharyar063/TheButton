@@ -28,8 +28,8 @@ interface AddLinkModalProps {
 export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
   const [isPaying, setIsPaying] = useState(false);
   const { toast } = useToast();
-  const { address, isConnected, sendUSDCPayment } = useWeb3();
-  const { user: farcasterUser, isAuthenticated: isFarcasterAuth } = useFarcaster();
+  const { address, isConnected, sendETHPayment } = useWeb3();
+  const { user: farcasterUser, isAuthenticated: isFarcasterAuth, walletAddress: farcasterWallet } = useFarcaster();
 
   const form = useForm<LinkFormData>({
     resolver: zodResolver(linkFormSchema),
@@ -64,8 +64,9 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
   });
 
   const handleSubmit = async (data: LinkFormData) => {
-
-    if (!isConnected) {
+    const effectiveAddress = address || farcasterWallet;
+    
+    if (!isConnected && !farcasterWallet) {
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet to submit a link",
@@ -79,10 +80,10 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
 
       toast({
         title: "Payment required",
-        description: "Please approve the 1 USDC payment in your wallet...",
+        description: "Please approve the 0.00001 ETH payment in your wallet...",
       });
 
-      const txHash = await sendUSDCPayment("1");
+      const txHash = await sendETHPayment("0.00001", effectiveAddress!);
 
       toast({
         title: "Transaction submitted",
@@ -92,7 +93,7 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
       submitLinkMutation.mutate({
         url: data.url,
         txHash: txHash,
-        submittedBy: address!,
+        submittedBy: effectiveAddress!,
       });
     } catch (error) {
       toast({
@@ -148,8 +149,7 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Payment Required</span>
               <span className="text-lg font-bold flex items-center gap-1">
-                <DollarSign className="w-4 h-4" />
-                1 USDC
+                0.00001 ETH
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -170,8 +170,7 @@ export function AddLinkModal({ isOpen, onClose }: AddLinkModalProps) {
               </>
             ) : (
               <>
-                <DollarSign className="w-4 h-4 mr-2" />
-                Post (1 USDC)
+                Post (0.00001 ETH)
               </>
             )}
           </Button>

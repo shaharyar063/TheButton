@@ -60,22 +60,9 @@ export function Header({ onAddLinkClick }: HeaderProps) {
                 </AvatarFallback>
               </Avatar>
             </div>
-          ) : showFarcasterAuth ? (
-            <Button
-              onClick={farcasterSignIn}
-              variant="outline"
-              size="default"
-              className="gap-2"
-              data-testid="button-farcaster-signin"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-4v-4H7l5-5 5 5h-3v4z"/>
-              </svg>
-              <span className="hidden sm:inline">Sign in with Farcaster</span>
-            </Button>
           ) : null}
 
-          {!isInFrame && (
+          {!isInFrame && !isFarcasterAuth && (
             <>
               {!isConnected ? (
                 <Button

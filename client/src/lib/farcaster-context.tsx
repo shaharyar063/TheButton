@@ -16,6 +16,7 @@ interface FarcasterContextType {
   isLoading: boolean;
   isInFrame: boolean;
   frameContext: any;
+  walletAddress: string | null;
   signIn: () => void;
   signOut: () => void;
 }
@@ -27,6 +28,7 @@ export function FarcasterProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isInFrame, setIsInFrame] = useState(false);
   const [frameContext, setFrameContext] = useState<any>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   useEffect(() => {
     const initFrame = async () => {
@@ -42,6 +44,18 @@ export function FarcasterProvider({ children }: { children: ReactNode }) {
             displayName: context.user.displayName,
             pfpUrl: context.user.pfpUrl,
           });
+          
+          try {
+            const provider = sdk.wallet?.ethProvider;
+            if (provider) {
+              const accounts = await provider.request({ method: "eth_accounts" });
+              if (accounts && accounts.length > 0) {
+                setWalletAddress(accounts[0]);
+              }
+            }
+          } catch (error) {
+            console.error("Failed to get Farcaster wallet address:", error);
+          }
         }
 
         sdk.actions.ready();
@@ -61,6 +75,7 @@ export function FarcasterProvider({ children }: { children: ReactNode }) {
 
   const signOut = () => {
     setUser(null);
+    setWalletAddress(null);
   };
 
   return (
@@ -71,6 +86,7 @@ export function FarcasterProvider({ children }: { children: ReactNode }) {
         isLoading,
         isInFrame,
         frameContext,
+        walletAddress,
         signIn,
         signOut,
       }}

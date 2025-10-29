@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertLinkSchema, insertClickSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { verifyUSDCPayment } from "./contract-utils";
+import { verifyETHPayment } from "./contract-utils";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const getBaseUrl = () => {
@@ -25,7 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="${baseUrl}" />
           <meta property="og:title" content="Link Reveal - Farcaster Mini App" />
-          <meta property="og:description" content="Pay 1 USDC to submit a mystery link that visitors can reveal" />
+          <meta property="og:description" content="Pay 0.00001 ETH to submit a mystery link that visitors can reveal" />
           <meta property="og:image" content="${baseUrl}/api/frame/image" />
         </head>
         <body>
@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Verifying transaction: ${validationResult.data.txHash}`);
-      const verification = await verifyUSDCPayment(validationResult.data.txHash);
+      const verification = await verifyETHPayment(validationResult.data.txHash);
       
       if (!verification.isValid) {
         console.error(`Transaction verification failed: ${verification.error}`);
