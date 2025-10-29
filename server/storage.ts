@@ -2,14 +2,25 @@ import { type Link, type InsertLink, type Click, type InsertClick } from "@share
 import pg from "pg";
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required");
-}
+const getDatabaseUrl = () => {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("DATABASE_URL environment variable is required");
+  }
+  return url;
+};
 
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+let pool: pg.Pool;
+
+const getPool = () => {
+  if (!pool) {
+    pool = new Pool({ 
+      connectionString: getDatabaseUrl(),
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return pool;
+};
 
 export interface IStorage {
   getCurrentLink(): Promise<Link | undefined>;
@@ -21,7 +32,7 @@ export interface IStorage {
 export class PostgresStorage implements IStorage {
   async getCurrentLink(): Promise<Link | undefined> {
     try {
-      const result = await pool.query(
+      const result = await getPool().query(
         "SELECT * FROM links ORDER BY created_at DESC LIMIT 1"
       );
 
@@ -38,7 +49,7 @@ export class PostgresStorage implements IStorage {
 
   async createLink(insertLink: InsertLink): Promise<Link> {
     try {
-      const result = await pool.query(
+      const result = await getPool().query(
         `INSERT INTO links (url, submitted_by, submitter_username, submitter_pfp_url, tx_hash) 
          VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
@@ -54,7 +65,7 @@ export class PostgresStorage implements IStorage {
 
   async getRecentClicks(limit: number = 50): Promise<Click[]> {
     try {
-      const result = await pool.query(
+      const result = await getPool().query(
         "SELECT * FROM clicks ORDER BY clicked_at DESC LIMIT $1",
         [limit]
       );
@@ -68,7 +79,7 @@ export class PostgresStorage implements IStorage {
 
   async createClick(insertClick: InsertClick): Promise<Click> {
     try {
-      const result = await pool.query(
+      const result = await getPool().query(
         `INSERT INTO clicks (link_id, clicked_by, clicker_username, clicker_pfp_url, user_agent) 
          VALUES ($1, $2, $3, $4, $5) 
          RETURNING *`,
