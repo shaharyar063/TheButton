@@ -68,7 +68,8 @@ export default function Home() {
   };
 
   const handleShareToFarcaster = () => {
-    const frameUrl = `${window.location.origin}/frame`;
+    const timestamp = Date.now();
+    const frameUrl = `${window.location.origin}/frame?v=${timestamp}`;
     const castText = "Click the mystery button to reveal the link! 🔮";
     const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(frameUrl)}`;
     window.open(warpcastUrl, "_blank", "noopener,noreferrer");
@@ -80,7 +81,8 @@ export default function Home() {
   };
 
   const handleCopyFrameLink = async () => {
-    const frameUrl = `${window.location.origin}/frame`;
+    const timestamp = Date.now();
+    const frameUrl = `${window.location.origin}/frame?v=${timestamp}`;
     try {
       await navigator.clipboard.writeText(frameUrl);
       toast({
