@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface RevealButtonProps {
   onClick: () => void;
@@ -9,51 +9,65 @@ interface RevealButtonProps {
 }
 
 export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps) {
-  return (
-    <div className="flex flex-col items-center gap-6">
-      <div className="text-center space-y-2 mb-4">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-          What's the Link?
-        </h2>
-        <p className="text-muted-foreground text-sm sm:text-base max-w-md">
-          Click the button below to reveal the mystery destination
-        </p>
-      </div>
+  const [isPressed, setIsPressed] = useState(false);
 
-      <Button
-        onClick={onClick}
+  const handleClick = () => {
+    setIsPressed(true);
+    onClick();
+    setTimeout(() => setIsPressed(false), 200);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-8">
+      <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
+        What's the Link?
+      </h2>
+
+      <button
+        onClick={handleClick}
         disabled={isLoading || !hasLink}
-        size="lg"
         className={cn(
-          "min-h-[120px] min-w-[280px] sm:min-w-[320px]",
-          "rounded-2xl shadow-xl",
-          "text-2xl font-semibold tracking-tight",
+          "relative w-64 h-64 sm:w-80 sm:h-80 rounded-full",
           "transition-all duration-150",
-          "hover:shadow-2xl hover:scale-[1.02]",
-          "active:scale-[0.98]"
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+          "focus:outline-none focus:ring-4 focus:ring-primary/20",
+          isPressed ? "scale-95" : "scale-100"
         )}
+        style={{
+          background: isPressed
+            ? "linear-gradient(145deg, #2563eb, #1d4ed8)"
+            : "linear-gradient(145deg, #3b82f6, #2563eb)",
+          boxShadow: isPressed
+            ? "inset 8px 8px 16px #1e40af, inset -8px -8px 16px #60a5fa"
+            : "12px 12px 24px #1e3a8a, -12px -12px 24px #60a5fa",
+        }}
         data-testid="button-reveal-link"
       >
-        {isLoading ? (
-          <Loader2 className="w-8 h-8 animate-spin" />
-        ) : !hasLink ? (
-          <span className="flex flex-col items-center gap-2">
-            <span className="text-lg">No Link Yet</span>
-            <span className="text-sm font-normal opacity-80">Be the first to add one!</span>
-          </span>
-        ) : (
-          <span className="flex items-center gap-3">
-            Reveal Link
-            <ExternalLink className="w-6 h-6" />
-          </span>
-        )}
-      </Button>
+        <div className="absolute inset-0 rounded-full overflow-hidden">
+          <div
+            className="absolute top-0 left-0 w-full h-1/2"
+            style={{
+              background: "linear-gradient(to bottom, rgba(255,255,255,0.2), rgba(255,255,255,0))",
+            }}
+          />
+        </div>
 
-      {hasLink && (
-        <p className="text-xs text-muted-foreground text-center max-w-sm">
-          This action is free. The link was submitted by a community member who paid 0.00001 ETH.
-        </p>
-      )}
+        <div className="relative flex flex-col items-center justify-center h-full text-white">
+          {isLoading ? (
+            <Loader2 className="w-12 h-12 animate-spin" />
+          ) : !hasLink ? (
+            <div className="flex flex-col items-center gap-2 px-6">
+              <span className="text-xl sm:text-2xl font-semibold">No Link Yet</span>
+              <span className="text-sm font-normal opacity-90">Be the first!</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <span className="text-2xl sm:text-3xl font-bold">Reveal Link</span>
+              <ExternalLink className="w-8 h-8" />
+            </div>
+          )}
+        </div>
+      </button>
     </div>
   );
 }
