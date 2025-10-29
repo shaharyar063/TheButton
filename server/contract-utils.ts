@@ -24,8 +24,8 @@ async function sleep(ms: number): Promise<void> {
 
 async function fetchTransactionWithRetry(
   txHash: `0x${string}`,
-  maxRetries: number = 5,
-  baseDelay: number = 2000
+  maxRetries: number = 12,
+  baseDelay: number = 3000
 ): Promise<{ receipt: any; transaction: any }> {
   let lastError: Error | null = null;
 
@@ -36,6 +36,7 @@ async function fetchTransactionWithRetry(
         publicClient.getTransaction({ hash: txHash }),
       ]);
 
+      console.log(`✓ Transaction found after ${attempt + 1} attempt(s)`);
       return { receipt, transaction };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -46,14 +47,15 @@ async function fetchTransactionWithRetry(
         errorMessage.includes("not available") ||
         errorMessage.includes("could not find") ||
         errorMessage.includes("transaction not found") ||
-        errorMessage.includes("receipt not found");
+        errorMessage.includes("receipt not found") ||
+        errorMessage.includes("not be processed");
 
       if (!isRetryableError || attempt === maxRetries - 1) {
         throw lastError;
       }
 
-      const delay = baseDelay * Math.pow(1.5, attempt);
-      console.log(`Transaction not found yet, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      const delay = baseDelay * Math.pow(1.3, attempt);
+      console.log(`⏳ Transaction not indexed yet, retrying in ${Math.round(delay)}ms... (attempt ${attempt + 1}/${maxRetries})`);
       await sleep(delay);
     }
   }
@@ -103,7 +105,7 @@ export async function verifyETHPayment(txHash: string): Promise<TransactionVerif
     if (errorMessage.toLowerCase().includes("not found")) {
       return { 
         isValid: false, 
-        error: "Transaction not found on blockchain. Please verify the transaction hash and ensure it's confirmed on Base Mainnet." 
+        error: "Transaction not found on Base Mainnet blockchain after waiting 60+ seconds. Please ensure: (1) Your wallet is connected to Base Mainnet (Chain ID: 8453), (2) The transaction was actually sent and confirmed, (3) You're using the correct transaction hash. Check your transaction on https://basescan.org" 
       };
     }
     
