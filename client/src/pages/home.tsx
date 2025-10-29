@@ -10,6 +10,7 @@ import { User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWeb3 } from "@/lib/web3-context";
 import { useFarcaster } from "@/lib/farcaster-context";
+import { useRealtimeUpdates } from "@/hooks/use-realtime-updates";
 import type { Link, Click } from "@shared/schema";
 
 export default function Home() {
@@ -18,13 +19,14 @@ export default function Home() {
   const { address } = useWeb3();
   const { user: farcasterUser } = useFarcaster();
 
+  useRealtimeUpdates();
+
   const { data: currentLink, isLoading: linkLoading } = useQuery<Link>({
     queryKey: ["/api/current-link"],
   });
 
   const { data: recentClicks = [], isLoading: clicksLoading } = useQuery<(Click & { link?: Link })[]>({
     queryKey: ["/api/recent-clicks"],
-    refetchInterval: 5000,
   });
 
   const recordClickMutation = useMutation({

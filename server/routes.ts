@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertLinkSchema, insertClickSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { verifyETHPayment } from "./contract-utils";
+import { appEvents } from "./events";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const getBaseUrl = () => {
@@ -39,6 +40,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/frame/image", async (req, res) => {
     const baseUrl = getBaseUrl();
     res.redirect(`${baseUrl}/favicon.png`);
+  });
+
+  app.get("/api/events", (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const sendEvent = (event: string, data: any) => {
+      if (!res.writableEnded) {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    };
+
+    const onLinkCreated = (link: any) => {
+      sendEvent('link:created', link);
+    };
+
+    const onClickCreated = (click: any) => {
+      sendEvent('click:created', click);
+    };
+
+    appEvents.on('link:created', onLinkCreated);
+    appEvents.on('click:created', onClickCreated);
+
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(':heartbeat\n\n');
+      }
+    }, 30000);
+
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      appEvents.off('link:created', onLinkCreated);
+      appEvents.off('click:created', onClickCreated);
+      if (!res.writableEnded) {
+        res.end();
+      }
+    };
+
+    req.on('close', cleanup);
+    req.on('error', cleanup);
+    res.on('error', cleanup);
   });
 
   app.get("/api/current-link", async (req, res) => {
@@ -84,6 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Transaction verified successfully from ${verification.from}`);
       const link = await storage.createLink(validationResult.data);
+      appEvents.emitLinkCreated(link);
       res.status(201).json(link);
     } catch (error) {
       console.error("Error creating link:", error);
@@ -126,6 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const click = await storage.createClick(validationResult.data);
+      appEvents.emitClickCreated(click);
       res.status(201).json(click);
     } catch (error) {
       console.error("Error creating click:", error);
