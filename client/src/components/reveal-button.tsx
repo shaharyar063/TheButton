@@ -1,6 +1,5 @@
 import { ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 
 interface RevealButtonProps {
   onClick: () => void;
@@ -9,14 +8,6 @@ interface RevealButtonProps {
 }
 
 export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps) {
-  const [isPressed, setIsPressed] = useState(false);
-
-  const handleClick = () => {
-    setIsPressed(true);
-    onClick();
-    setTimeout(() => setIsPressed(false), 200);
-  };
-
   return (
     <div className="flex flex-col items-center gap-8">
       <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
@@ -24,35 +15,53 @@ export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps)
       </h2>
 
       <button
-        onClick={handleClick}
+        onClick={onClick}
         disabled={isLoading || !hasLink}
         className={cn(
           "relative w-64 h-64 sm:w-80 sm:h-80 rounded-full",
-          "transition-all duration-150",
+          "transition-all duration-100 ease-linear",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          "focus:outline-none focus:ring-4 focus:ring-primary/20",
-          isPressed ? "scale-95" : "scale-100"
+          "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30",
         )}
         style={{
-          background: isPressed
-            ? "linear-gradient(145deg, #2563eb, #1d4ed8)"
-            : "linear-gradient(145deg, #3b82f6, #2563eb)",
-          boxShadow: isPressed
-            ? "inset 8px 8px 16px #1e40af, inset -8px -8px 16px #60a5fa"
-            : "12px 12px 24px #1e3a8a, -12px -12px 24px #60a5fa",
+          background: "linear-gradient(145deg, #60a5fa, #3b82f6)",
+          boxShadow: `
+            inset 0px 2px 0px rgba(255, 255, 255, 0.4),
+            0px 12px 0px #1e40af,
+            0px 16px 24px rgba(0, 0, 0, 0.4)
+          `,
+          transform: "translateY(0px)",
+        }}
+        onMouseDown={(e) => {
+          if (!isLoading && hasLink) {
+            e.currentTarget.style.transform = "translateY(8px)";
+            e.currentTarget.style.boxShadow = `
+              inset 0px 4px 12px rgba(0, 0, 0, 0.5),
+              inset 0px -2px 0px rgba(255, 255, 255, 0.1),
+              0px 4px 0px #1e40af,
+              0px 8px 12px rgba(0, 0, 0, 0.3)
+            `;
+          }
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = "translateY(0px)";
+          e.currentTarget.style.boxShadow = `
+            inset 0px 2px 0px rgba(255, 255, 255, 0.4),
+            0px 12px 0px #1e40af,
+            0px 16px 24px rgba(0, 0, 0, 0.4)
+          `;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0px)";
+          e.currentTarget.style.boxShadow = `
+            inset 0px 2px 0px rgba(255, 255, 255, 0.4),
+            0px 12px 0px #1e40af,
+            0px 16px 24px rgba(0, 0, 0, 0.4)
+          `;
         }}
         data-testid="button-reveal-link"
       >
-        <div className="absolute inset-0 rounded-full overflow-hidden">
-          <div
-            className="absolute top-0 left-0 w-full h-1/2"
-            style={{
-              background: "linear-gradient(to bottom, rgba(255,255,255,0.2), rgba(255,255,255,0))",
-            }}
-          />
-        </div>
-
-        <div className="relative flex flex-col items-center justify-center h-full text-white">
+        <div className="relative flex flex-col items-center justify-center h-full text-white select-none">
           {isLoading ? (
             <Loader2 className="w-12 h-12 animate-spin" />
           ) : !hasLink ? (

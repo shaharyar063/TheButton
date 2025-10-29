@@ -23,6 +23,14 @@ A Farcaster-integrated mini app where users can pay 0.00001 ETH to submit a myst
 **Complete**: Backend implementation with Supabase and transaction verification
 
 ## Recent Changes
+- 2025-10-29: Implemented real-time updates using Server-Sent Events (SSE)
+  - Links update instantly across all clients when someone submits a new link
+  - Clicks appear in real-time in the activity feed without polling
+  - Auto-reconnect on connection loss with proper cleanup
+- 2025-10-29: Redesigned reveal button as 3D circular button
+  - Sharp shadows (no blur) for crisp 3D effect
+  - Press animation with inset shadows on click
+  - Hardware-accelerated transform animations
 - 2025-10-29: Migrated payment system from USDC to native ETH (0.00001 ETH)
 - 2025-10-29: Switched from Base Sepolia testnet to Base Mainnet for production
 - 2025-10-29: Integrated Farcaster Frame SDK wallet provider for seamless in-frame transactions
@@ -38,9 +46,11 @@ A Farcaster-integrated mini app where users can pay 0.00001 ETH to submit a myst
 - **Pages**: Single-page app (`home.tsx`)
 - **Components**:
   - `header.tsx` - Top navigation with branding, user profile, and Add Link button
-  - `reveal-button.tsx` - Main CTA button for link revelation
+  - `reveal-button.tsx` - Circular 3D button with sharp shadows and press animation
   - `add-link-modal.tsx` - Modal for submitting new links with ETH payment
-  - `activity-slider.tsx` - Bottom feed showing click history
+  - `activity-slider.tsx` - Bottom feed showing click history with real-time updates
+- **Hooks**:
+  - `use-realtime-updates.ts` - Subscribes to SSE for instant link and click updates
 - **Context Providers**:
   - `farcaster-context.tsx` - Manages Farcaster Frame SDK integration and wallet provider
   - `web3-context.tsx` - Manages wallet connections with Farcaster provider priority
@@ -56,6 +66,7 @@ A Farcaster-integrated mini app where users can pay 0.00001 ETH to submit a myst
   - `POST /api/links` - Submits new link after ETH payment verification
   - `POST /api/clicks` - Records a click event
   - `GET /api/recent-clicks` - Returns recent click history
+  - `GET /api/events` - Server-Sent Events endpoint for real-time updates
 - **Transaction Verification**: 
   - Verifies transaction exists on Base Mainnet blockchain
   - Confirms transaction succeeded (not failed/reverted)
