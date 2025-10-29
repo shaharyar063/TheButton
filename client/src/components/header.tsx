@@ -21,34 +21,18 @@ export function Header({ onAddLinkClick }: HeaderProps) {
         <div className="flex-1" />
 
         <motion.div
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
-          className="perspective-1000"
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           <Button
             onClick={onAddLinkClick}
-            size="lg"
-            className="relative h-16 px-8 text-lg font-bold shadow-2xl rounded-2xl"
-            style={{
-              transformStyle: "preserve-3d",
-              transform: "translateZ(0)",
-            }}
+            size="default"
+            className="relative px-6 font-semibold shadow-lg rounded-xl"
             data-testid="button-add-link"
           >
-            <motion.div
-              className="flex items-center gap-3"
-              animate={{
-                rotateY: [0, 5, -5, 0],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            >
-              <LinkIcon className="w-6 h-6" />
-              <span>Add Your Link</span>
-            </motion.div>
+            <LinkIcon className="w-5 h-5 mr-2" />
+            <span>Add Your Link</span>
           </Button>
         </motion.div>
 
