@@ -3,10 +3,10 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const getSupabaseClient = (): SupabaseClient => {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.DATABASE_URL?.match(/https?:\/\/([^.]+)\.supabase\.co/)?.[0];
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY) environment variables are required");
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) environment variables are required");
   }
   
   return createClient(supabaseUrl, supabaseKey);

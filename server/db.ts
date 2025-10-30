@@ -9,11 +9,11 @@ export async function initializeDatabase() {
   console.log("Database initialization check...");
   
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
     console.log("⚠️  Supabase credentials not available.");
-    console.log("   Set SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY) environment variables.");
+    console.log("   Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) environment variables.");
     return;
   }
   
