@@ -49,9 +49,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <meta property="fc:frame:button:1" content="🔗 Open Link" />
             <meta property="fc:frame:button:1:action" content="link" />
             <meta property="fc:frame:button:1:target" content="${link.url}" />
-            <meta property="fc:frame:button:2" content="📊 Track Click" />
-            <meta property="fc:frame:button:2:action" content="post" />
-            <meta property="fc:frame:post_url" content="${baseUrl}/api/frame/action" />
             <meta property="og:title" content="Mystery Link Button" />
             <meta property="og:description" content="Click to open the mystery link!" />
             <meta property="og:image" content="${baseUrl}/api/frame/image" />
