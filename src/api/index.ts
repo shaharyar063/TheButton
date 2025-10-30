@@ -1,5 +1,5 @@
-import { createExpressApp } from "../../server/app";
-import { initializeDatabase } from "../../server/db";
+const { createExpressApp } = require("../../server/app");
+const { initializeDatabase } = require("../../server/db");
 
 const app = createExpressApp();
 
@@ -12,7 +12,7 @@ async function ensureDbInitialized() {
   }
 }
 
-export default async function handler(req: any, res: any) {
+module.exports = async function handler(req: any, res: any) {
   await ensureDbInitialized();
   return app(req, res);
-}
+};
