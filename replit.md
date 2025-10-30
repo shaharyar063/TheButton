@@ -23,6 +23,11 @@ A Farcaster-integrated mini app where users can pay 0.00001 ETH to submit a myst
 **Complete**: Backend implementation with Supabase and transaction verification
 
 ## Recent Changes
+- 2025-10-30: Production bug fixes
+  - Added VITE_OWNER_WALLET_ADDRESS environment variable for frontend access
+  - Updated .env.example to use BASE_MAINNET_RPC_URL (production) instead of BASE_SEPOLIA_RPC_URL (testnet)
+  - Added Buffer polyfill using globalThis for @farcaster/frame-sdk Node.js dependency compatibility
+  - Note: Vite build warning "Module 'buffer' has been externalized" is informational and doesn't affect functionality
 - 2025-10-29: Implemented real-time updates using Server-Sent Events (SSE)
   - Links update instantly across all clients when someone submits a new link
   - Clicks appear in real-time in the activity feed without polling
@@ -94,6 +99,7 @@ A Farcaster-integrated mini app where users can pay 0.00001 ETH to submit a myst
 ### Environment Variables
 - `DATABASE_URL` - Supabase PostgreSQL connection string (configured)
 - `OWNER_WALLET_ADDRESS` - Wallet to receive ETH payments (0x31F02Ed2c900A157C851786B43772F86151C7E34)
+- `VITE_OWNER_WALLET_ADDRESS` - Frontend-accessible owner wallet address (must have VITE_ prefix for client access)
 - `BASE_MAINNET_RPC_URL` - RPC endpoint for Base Mainnet (defaults to https://mainnet.base.org)
 
 ### Design System
