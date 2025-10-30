@@ -5,14 +5,14 @@ import { fromZodError } from "zod-validation-error";
 import { verifyETHPayment } from "./contract-utils";
 import { appEvents } from "./events";
 
+declare module 'http' {
+  interface IncomingMessage {
+    rawBody: unknown
+  }
+}
+
 export function createExpressApp(): Express {
   const app = express();
-
-  declare module 'http' {
-    interface IncomingMessage {
-      rawBody: unknown
-    }
-  }
 
   app.use(express.json({
     verify: (req, _res, buf) => {
