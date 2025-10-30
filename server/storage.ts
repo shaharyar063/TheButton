@@ -6,7 +6,11 @@ const getSupabaseClient = (): SupabaseClient => {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) environment variables are required");
+    console.error("❌ Missing Supabase credentials!");
+    console.error("   Please set these environment variables in Vercel:");
+    console.error("   - SUPABASE_URL");
+    console.error("   - SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY)");
+    throw new Error("Database credentials not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables in your Vercel project settings.");
   }
   
   return createClient(supabaseUrl, supabaseKey);

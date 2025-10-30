@@ -429,50 +429,6 @@ export function createExpressApp(): Express {
     }
   });
 
-  app.get("/api/events", (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
-
-    const sendEvent = (event: string, data: any) => {
-      if (!res.writableEnded) {
-        res.write(`event: ${event}\n`);
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
-      }
-    };
-
-    const onLinkCreated = (link: any) => {
-      sendEvent('link:created', link);
-    };
-
-    const onClickCreated = (click: any) => {
-      sendEvent('click:created', click);
-    };
-
-    appEvents.on('link:created', onLinkCreated);
-    appEvents.on('click:created', onClickCreated);
-
-    const heartbeat = setInterval(() => {
-      if (!res.writableEnded) {
-        res.write(':heartbeat\n\n');
-      }
-    }, 30000);
-
-    const cleanup = () => {
-      clearInterval(heartbeat);
-      appEvents.off('link:created', onLinkCreated);
-      appEvents.off('click:created', onClickCreated);
-      if (!res.writableEnded) {
-        res.end();
-      }
-    };
-
-    req.on('close', cleanup);
-    req.on('error', cleanup);
-    res.on('error', cleanup);
-  });
 
   app.get("/api/base-url", async (req, res) => {
     try {
