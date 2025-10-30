@@ -9,5 +9,5 @@ coverage
 .next
 out
 build
-src/
+src/api/
 dist/index.js
