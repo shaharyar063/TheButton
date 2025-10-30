@@ -14,9 +14,14 @@ let pool: pg.Pool;
 
 const getPool = () => {
   if (!pool) {
+    const isVercel = process.env.VERCEL === '1';
     pool = new Pool({ 
       connectionString: getDatabaseUrl(),
       ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000,
+      query_timeout: 10000,
+      max: isVercel ? 1 : 10,
+      idleTimeoutMillis: isVercel ? 0 : 30000,
     });
   }
   return pool;

@@ -5,11 +5,15 @@ if (!process.env.DATABASE_URL) {
   console.warn("⚠️  DATABASE_URL not set. Database features will not work.");
 }
 
+const isVercel = process.env.VERCEL === '1';
+
 const pool = process.env.DATABASE_URL ? new Pool({ 
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
   connectionTimeoutMillis: 10000,
   query_timeout: 10000,
+  max: isVercel ? 1 : 10,
+  idleTimeoutMillis: isVercel ? 0 : 30000,
 }) : null;
 
 export async function initializeDatabase() {
