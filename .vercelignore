@@ -9,4 +9,6 @@ coverage
 .next
 out
 build
-dist
+api/index.ts
+server/
+dist/index.js
