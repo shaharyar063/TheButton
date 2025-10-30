@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
             <meta property="fc:frame:image:aspect_ratio" content="1.91:1" />
-            <meta property="fc:frame:button:1" content="🔗 Open Link" />
+            <meta property="fc:frame:button:1" content="Open Link" />
             <meta property="fc:frame:button:1:action" content="link" />
             <meta property="fc:frame:button:1:target" content="${link.url}" />
             <meta property="og:title" content="Mystery Link Button" />
@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <meta property="fc:frame" content="vNext" />
           <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
           <meta property="fc:frame:image:aspect_ratio" content="1.91:1" />
-          <meta property="fc:frame:button:1" content="📭 Visit App" />
+          <meta property="fc:frame:button:1" content="Visit App" />
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="${baseUrl}" />
           <meta property="og:title" content="Mystery Link Button" />
