@@ -48088,7 +48088,7 @@ async function initializeDatabase() {
   }
 }
 
-// api/index.ts
+// src/api/index.ts
 var app = createExpressApp();
 var dbInitialized = false;
 async function ensureDbInitialized() {

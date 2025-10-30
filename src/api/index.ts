@@ -1,5 +1,5 @@
-import { createExpressApp } from "../server/app";
-import { initializeDatabase } from "../server/db";
+import { createExpressApp } from "../../server/app";
+import { initializeDatabase } from "../../server/db";
 
 const app = createExpressApp();
 
