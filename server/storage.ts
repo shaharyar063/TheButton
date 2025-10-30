@@ -1,6 +1,5 @@
 import { type Link, type InsertLink, type Click, type InsertClick } from "@shared/schema";
-import pg from "pg";
-const { Pool } = pg;
+import { neon } from '@neondatabase/serverless';
 
 const getDatabaseUrl = () => {
   const url = process.env.DATABASE_URL;
@@ -10,21 +9,13 @@ const getDatabaseUrl = () => {
   return url;
 };
 
-let pool: pg.Pool;
+let sqlClient: ReturnType<typeof neon> | null = null;
 
-const getPool = () => {
-  if (!pool) {
-    const isVercel = process.env.VERCEL === '1';
-    pool = new Pool({ 
-      connectionString: getDatabaseUrl(),
-      ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000,
-      query_timeout: 10000,
-      max: isVercel ? 1 : 10,
-      idleTimeoutMillis: isVercel ? 0 : 30000,
-    });
+const getSqlClient = () => {
+  if (!sqlClient) {
+    sqlClient = neon(getDatabaseUrl());
   }
-  return pool;
+  return sqlClient;
 };
 
 export interface IStorage {
@@ -37,15 +28,14 @@ export interface IStorage {
 export class PostgresStorage implements IStorage {
   async getCurrentLink(): Promise<Link | undefined> {
     try {
-      const result = await getPool().query(
-        "SELECT * FROM links ORDER BY created_at DESC LIMIT 1"
-      );
+      const sql = getSqlClient();
+      const result = await sql`SELECT * FROM links ORDER BY created_at DESC LIMIT 1` as any[];
 
-      if (result.rows.length === 0) {
+      if (result.length === 0) {
         return undefined;
       }
 
-      return this.mapLink(result.rows[0]);
+      return this.mapLink(result[0]);
     } catch (error) {
       console.error("Error fetching current link:", error);
       return undefined;
@@ -54,14 +44,14 @@ export class PostgresStorage implements IStorage {
 
   async createLink(insertLink: InsertLink): Promise<Link> {
     try {
-      const result = await getPool().query(
-        `INSERT INTO links (url, submitted_by, submitter_username, submitter_pfp_url, tx_hash) 
-         VALUES ($1, $2, $3, $4, $5) 
-         RETURNING *`,
-        [insertLink.url, insertLink.submittedBy, insertLink.submitterUsername, insertLink.submitterPfpUrl, insertLink.txHash]
-      );
+      const sql = getSqlClient();
+      const result = await sql`
+        INSERT INTO links (url, submitted_by, submitter_username, submitter_pfp_url, tx_hash) 
+        VALUES (${insertLink.url}, ${insertLink.submittedBy}, ${insertLink.submitterUsername}, ${insertLink.submitterPfpUrl}, ${insertLink.txHash}) 
+        RETURNING *
+      ` as any[];
 
-      return this.mapLink(result.rows[0]);
+      return this.mapLink(result[0]);
     } catch (error) {
       console.error("Error creating link:", error);
       throw new Error(`Failed to create link: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -70,12 +60,10 @@ export class PostgresStorage implements IStorage {
 
   async getRecentClicks(limit: number = 50): Promise<Click[]> {
     try {
-      const result = await getPool().query(
-        "SELECT * FROM clicks ORDER BY clicked_at DESC LIMIT $1",
-        [limit]
-      );
+      const sql = getSqlClient();
+      const result = await sql`SELECT * FROM clicks ORDER BY clicked_at DESC LIMIT ${limit}` as any[];
 
-      return result.rows.map(this.mapClick);
+      return result.map(this.mapClick);
     } catch (error) {
       console.error("Error fetching clicks:", error);
       return [];
@@ -84,14 +72,14 @@ export class PostgresStorage implements IStorage {
 
   async createClick(insertClick: InsertClick): Promise<Click> {
     try {
-      const result = await getPool().query(
-        `INSERT INTO clicks (link_id, clicked_by, clicker_username, clicker_pfp_url, user_agent) 
-         VALUES ($1, $2, $3, $4, $5) 
-         RETURNING *`,
-        [insertClick.linkId, insertClick.clickedBy, insertClick.clickerUsername, insertClick.clickerPfpUrl, insertClick.userAgent]
-      );
+      const sql = getSqlClient();
+      const result = await sql`
+        INSERT INTO clicks (link_id, clicked_by, clicker_username, clicker_pfp_url, user_agent) 
+        VALUES (${insertClick.linkId}, ${insertClick.clickedBy}, ${insertClick.clickerUsername}, ${insertClick.clickerPfpUrl}, ${insertClick.userAgent}) 
+        RETURNING *
+      ` as any[];
 
-      return this.mapClick(result.rows[0]);
+      return this.mapClick(result[0]);
     } catch (error) {
       console.error("Error creating click:", error);
       throw new Error(`Failed to create click: ${error instanceof Error ? error.message : "Unknown error"}`);
