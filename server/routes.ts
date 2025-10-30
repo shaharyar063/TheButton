@@ -456,6 +456,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.on('error', cleanup);
   });
 
+  app.get("/api/base-url", async (req, res) => {
+    try {
+      const baseUrl = getBaseUrl();
+      res.json({ baseUrl });
+    } catch (error) {
+      console.error("Error fetching base URL:", error);
+      res.status(500).json({ error: "Failed to fetch base URL" });
+    }
+  });
+
   app.get("/api/current-link", async (req, res) => {
     try {
       const link = await storage.getCurrentLink();

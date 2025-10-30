@@ -30,6 +30,10 @@ export default function Home() {
     queryKey: ["/api/recent-clicks"],
   });
 
+  const { data: baseUrlData } = useQuery<{ baseUrl: string }>({
+    queryKey: ["/api/base-url"],
+  });
+
   const recordClickMutation = useMutation({
     mutationFn: async () => {
       if (!currentLink) throw new Error("No link available");
@@ -68,8 +72,9 @@ export default function Home() {
   };
 
   const handleShareToFarcaster = () => {
+    const baseUrl = baseUrlData?.baseUrl || window.location.origin;
     const timestamp = Date.now();
-    const frameUrl = `${window.location.origin}/frame?v=${timestamp}`;
+    const frameUrl = `${baseUrl}/frame?v=${timestamp}`;
     const castText = "Click the mystery button to reveal the link! 🔮";
     const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(castText)}&embeds[]=${encodeURIComponent(frameUrl)}`;
     window.open(warpcastUrl, "_blank", "noopener,noreferrer");
@@ -81,8 +86,9 @@ export default function Home() {
   };
 
   const handleCopyFrameLink = async () => {
+    const baseUrl = baseUrlData?.baseUrl || window.location.origin;
     const timestamp = Date.now();
-    const frameUrl = `${window.location.origin}/frame?v=${timestamp}`;
+    const frameUrl = `${baseUrl}/frame?v=${timestamp}`;
     try {
       await navigator.clipboard.writeText(frameUrl);
       toast({
