@@ -1,14 +1,19 @@
 {
   "buildCommand": "bash scripts/build-vercel.sh",
   "outputDirectory": "dist/public",
+  "functions": {
+    "api/index.cjs": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index"
+      "destination": "/api/index.cjs"
     },
     {
       "source": "/frame",
-      "destination": "/api/index"
+      "destination": "/api/index.cjs"
     }
   ],
   "headers": [
