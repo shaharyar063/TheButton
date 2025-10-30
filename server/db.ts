@@ -1,32 +1,34 @@
-import pg from "pg";
-const { Pool } = pg;
+import { createClient } from '@supabase/supabase-js';
 
-if (!process.env.DATABASE_URL) {
-  console.warn("⚠️  DATABASE_URL not set. Database features will not work.");
+if (!process.env.SUPABASE_URL && !process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn("⚠️  Supabase credentials not set. Database features will not work.");
+  console.warn("   Set SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY) environment variables.");
 }
-
-const isVercel = process.env.VERCEL === '1';
-
-const pool = process.env.DATABASE_URL ? new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 10000,
-  query_timeout: 10000,
-  max: isVercel ? 1 : 10,
-  idleTimeoutMillis: isVercel ? 0 : 30000,
-}) : null;
 
 export async function initializeDatabase() {
   console.log("Database initialization check...");
   
-  if (!pool) {
-    console.log("⚠️  No database pool available. Set DATABASE_URL environment variable.");
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.log("⚠️  Supabase credentials not available.");
+    console.log("   Set SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY) environment variables.");
     return;
   }
   
   try {
-    const result = await pool.query("SELECT COUNT(*) FROM links");
-    console.log(`✓ Database connected. Links count: ${result.rows[0].count}`);
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { count, error } = await supabase
+      .from('links')
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error("⚠️  Database connection error:", error.message);
+      console.log("   Tables may need to be created.");
+    } else {
+      console.log(`✓ Database connected. Links count: ${count}`);
+    }
   } catch (error) {
     console.error("⚠️  Database connection error:", error);
     console.log("   Tables may need to be created.");

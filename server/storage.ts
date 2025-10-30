@@ -1,21 +1,15 @@
 import { type Link, type InsertLink, type Click, type InsertClick } from "@shared/schema";
-import { neon } from '@neondatabase/serverless';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const getDatabaseUrl = () => {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error("DATABASE_URL environment variable is required");
+const getSupabaseClient = (): SupabaseClient => {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.DATABASE_URL?.match(/https?:\/\/([^.]+)\.supabase\.co/)?.[0];
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY) environment variables are required");
   }
-  return url;
-};
-
-let sqlClient: ReturnType<typeof neon> | null = null;
-
-const getSqlClient = () => {
-  if (!sqlClient) {
-    sqlClient = neon(getDatabaseUrl());
-  }
-  return sqlClient;
+  
+  return createClient(supabaseUrl, supabaseKey);
 };
 
 export interface IStorage {
@@ -28,14 +22,20 @@ export interface IStorage {
 export class PostgresStorage implements IStorage {
   async getCurrentLink(): Promise<Link | undefined> {
     try {
-      const sql = getSqlClient();
-      const result = await sql`SELECT * FROM links ORDER BY created_at DESC LIMIT 1` as any[];
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('links')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-      if (result.length === 0) {
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching current link:", error);
         return undefined;
       }
 
-      return this.mapLink(result[0]);
+      return data ? this.mapLink(data) : undefined;
     } catch (error) {
       console.error("Error fetching current link:", error);
       return undefined;
@@ -44,14 +44,25 @@ export class PostgresStorage implements IStorage {
 
   async createLink(insertLink: InsertLink): Promise<Link> {
     try {
-      const sql = getSqlClient();
-      const result = await sql`
-        INSERT INTO links (url, submitted_by, submitter_username, submitter_pfp_url, tx_hash) 
-        VALUES (${insertLink.url}, ${insertLink.submittedBy}, ${insertLink.submitterUsername}, ${insertLink.submitterPfpUrl}, ${insertLink.txHash}) 
-        RETURNING *
-      ` as any[];
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('links')
+        .insert({
+          url: insertLink.url,
+          submitted_by: insertLink.submittedBy,
+          submitter_username: insertLink.submitterUsername,
+          submitter_pfp_url: insertLink.submitterPfpUrl,
+          tx_hash: insertLink.txHash
+        })
+        .select()
+        .single();
 
-      return this.mapLink(result[0]);
+      if (error) {
+        console.error("Error creating link:", error);
+        throw new Error(`Failed to create link: ${error.message}`);
+      }
+
+      return this.mapLink(data);
     } catch (error) {
       console.error("Error creating link:", error);
       throw new Error(`Failed to create link: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -60,10 +71,19 @@ export class PostgresStorage implements IStorage {
 
   async getRecentClicks(limit: number = 50): Promise<Click[]> {
     try {
-      const sql = getSqlClient();
-      const result = await sql`SELECT * FROM clicks ORDER BY clicked_at DESC LIMIT ${limit}` as any[];
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('clicks')
+        .select('*')
+        .order('clicked_at', { ascending: false })
+        .limit(limit);
 
-      return result.map(this.mapClick);
+      if (error) {
+        console.error("Error fetching clicks:", error);
+        return [];
+      }
+
+      return data ? data.map(this.mapClick) : [];
     } catch (error) {
       console.error("Error fetching clicks:", error);
       return [];
@@ -72,14 +92,25 @@ export class PostgresStorage implements IStorage {
 
   async createClick(insertClick: InsertClick): Promise<Click> {
     try {
-      const sql = getSqlClient();
-      const result = await sql`
-        INSERT INTO clicks (link_id, clicked_by, clicker_username, clicker_pfp_url, user_agent) 
-        VALUES (${insertClick.linkId}, ${insertClick.clickedBy}, ${insertClick.clickerUsername}, ${insertClick.clickerPfpUrl}, ${insertClick.userAgent}) 
-        RETURNING *
-      ` as any[];
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('clicks')
+        .insert({
+          link_id: insertClick.linkId,
+          clicked_by: insertClick.clickedBy,
+          clicker_username: insertClick.clickerUsername,
+          clicker_pfp_url: insertClick.clickerPfpUrl,
+          user_agent: insertClick.userAgent
+        })
+        .select()
+        .single();
 
-      return this.mapClick(result[0]);
+      if (error) {
+        console.error("Error creating click:", error);
+        throw new Error(`Failed to create click: ${error.message}`);
+      }
+
+      return this.mapClick(data);
     } catch (error) {
       console.error("Error creating click:", error);
       throw new Error(`Failed to create click: ${error instanceof Error ? error.message : "Unknown error"}`);
