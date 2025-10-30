@@ -1,4 +1,4 @@
-# Vercel Deployment Guide
+# Vercel Deployment Guides
 
 This app is ready to deploy on Vercel! Follow these steps:
 
