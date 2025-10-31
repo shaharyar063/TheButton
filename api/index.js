@@ -292,6 +292,59 @@ app.get("/api/recent-clicks", async (req, res) => {
   }
 });
 
+app.post("/api/links", async (req, res) => {
+  try {
+    const { url, txHash, submittedBy, submitterUsername, submitterPfpUrl } = req.body;
+
+    // Basic validation
+    if (!url || !txHash || !submittedBy) {
+      return res.status(400).json({ 
+        error: "Missing required fields: url, txHash, and submittedBy are required" 
+      });
+    }
+
+    console.log(`Verifying transaction: ${txHash}`);
+    const verification = await verifyETHPayment(txHash);
+    
+    if (!verification.isValid) {
+      console.error(`Transaction verification failed: ${verification.error}`);
+      return res.status(400).json({ 
+        error: verification.error || "Transaction verification failed" 
+      });
+    }
+
+    if (verification.from?.toLowerCase() !== submittedBy.toLowerCase()) {
+      console.error(`Submitter address mismatch: claimed ${submittedBy}, actual ${verification.from}`);
+      return res.status(400).json({ 
+        error: "Submitter address does not match transaction sender" 
+      });
+    }
+
+    console.log(`Transaction verified successfully from ${verification.from}`);
+    const link = await storage.createLink({
+      url,
+      txHash,
+      submittedBy,
+      submitterUsername,
+      submitterPfpUrl
+    });
+    
+    res.status(201).json(link);
+  } catch (error) {
+    console.error("Error creating link:", error);
+    
+    if (error instanceof Error && error.message.includes("duplicate key")) {
+      return res.status(400).json({ 
+        error: "This transaction has already been used to submit a link" 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : "Failed to create link" 
+    });
+  }
+});
+
 app.post("/api/clicks", async (req, res) => {
   try {
     const clickData = {
