@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index"
+      "destination": "/api/index.cjs"
     },
     {
       "source": "/frame",
-      "destination": "/api/index"
+      "destination": "/api/index.cjs"
     }
   ],
   "headers": [
