@@ -122,6 +122,17 @@ export class PostgresStorage implements IStorage {
   }
 
   private mapLink(data: any): Link {
+    let createdAt = data.created_at;
+    
+    if (createdAt instanceof Date) {
+      createdAt = createdAt.toISOString();
+    } else if (typeof createdAt === 'string') {
+      const date = new Date(createdAt);
+      if (!isNaN(date.getTime())) {
+        createdAt = date.toISOString();
+      }
+    }
+    
     return {
       id: data.id,
       url: data.url,
@@ -129,11 +140,22 @@ export class PostgresStorage implements IStorage {
       submitterUsername: data.submitter_username,
       submitterPfpUrl: data.submitter_pfp_url,
       txHash: data.tx_hash,
-      createdAt: data.created_at,
+      createdAt: createdAt,
     };
   }
 
   private mapClick(data: any): Click {
+    let clickedAt = data.clicked_at;
+    
+    if (clickedAt instanceof Date) {
+      clickedAt = clickedAt.toISOString();
+    } else if (typeof clickedAt === 'string') {
+      const date = new Date(clickedAt);
+      if (!isNaN(date.getTime())) {
+        clickedAt = date.toISOString();
+      }
+    }
+    
     return {
       id: data.id,
       linkId: data.link_id,
@@ -141,7 +163,7 @@ export class PostgresStorage implements IStorage {
       clickerUsername: data.clicker_username,
       clickerPfpUrl: data.clicker_pfp_url,
       userAgent: data.user_agent,
-      clickedAt: data.clicked_at,
+      clickedAt: clickedAt,
     };
   }
 }

@@ -129,25 +129,57 @@ const storage = (() => {
     return createClient(supabaseUrl, supabaseKey);
   };
 
-  const mapLink = (data) => ({
-    id: data.id,
-    url: data.url,
-    submittedBy: data.submitted_by,
-    submitterUsername: data.submitter_username,
-    submitterPfpUrl: data.submitter_pfp_url,
-    txHash: data.tx_hash,
-    createdAt: data.created_at,
-  });
+  const mapLink = (data) => {
+    // Ensure timestamp is in proper ISO format for JavaScript Date parsing
+    let createdAt = data.created_at;
+    
+    // If it's already a Date object or timestamp, convert to ISO string
+    if (createdAt instanceof Date) {
+      createdAt = createdAt.toISOString();
+    } else if (typeof createdAt === 'string') {
+      // Parse and re-format to ensure consistent ISO format
+      const date = new Date(createdAt);
+      if (!isNaN(date.getTime())) {
+        createdAt = date.toISOString();
+      }
+    }
+    
+    return {
+      id: data.id,
+      url: data.url,
+      submittedBy: data.submitted_by,
+      submitterUsername: data.submitter_username,
+      submitterPfpUrl: data.submitter_pfp_url,
+      txHash: data.tx_hash,
+      createdAt: createdAt,
+    };
+  };
 
-  const mapClick = (data) => ({
-    id: data.id,
-    linkId: data.link_id,
-    clickedBy: data.clicked_by,
-    clickerUsername: data.clicker_username,
-    clickerPfpUrl: data.clicker_pfp_url,
-    userAgent: data.user_agent,
-    clickedAt: data.clicked_at,
-  });
+  const mapClick = (data) => {
+    // Ensure timestamp is in proper ISO format for JavaScript Date parsing
+    let clickedAt = data.clicked_at;
+    
+    // If it's already a Date object or timestamp, convert to ISO string
+    if (clickedAt instanceof Date) {
+      clickedAt = clickedAt.toISOString();
+    } else if (typeof clickedAt === 'string') {
+      // Parse and re-format to ensure consistent ISO format
+      const date = new Date(clickedAt);
+      if (!isNaN(date.getTime())) {
+        clickedAt = date.toISOString();
+      }
+    }
+    
+    return {
+      id: data.id,
+      linkId: data.link_id,
+      clickedBy: data.clicked_by,
+      clickerUsername: data.clicker_username,
+      clickerPfpUrl: data.clicker_pfp_url,
+      userAgent: data.user_agent,
+      clickedAt: clickedAt,
+    };
+  };
 
   return {
     async getCurrentLink() {
