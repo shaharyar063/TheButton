@@ -26,7 +26,7 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchTransactionWithRetry(txHash, maxRetries = 12, baseDelay = 3000) {
+async function fetchTransactionWithRetry(txHash, maxRetries = 20, baseDelay = 2000) {
   let lastError = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -54,8 +54,9 @@ async function fetchTransactionWithRetry(txHash, maxRetries = 12, baseDelay = 30
         throw lastError;
       }
 
-      const delay = baseDelay * Math.pow(1.3, attempt);
-      console.log(`⏳ Transaction not indexed yet, retrying in ${Math.round(delay)}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      const delay = baseDelay * Math.pow(1.2, attempt);
+      const remainingTime = Math.round((maxRetries - attempt - 1) * delay / 1000);
+      console.log(`⏳ Waiting for blockchain to index transaction... (${attempt + 1}/${maxRetries}, ~${remainingTime}s remaining)`);
       await sleep(delay);
     }
   }
@@ -105,7 +106,7 @@ async function verifyETHPayment(txHash) {
     if (errorMessage.toLowerCase().includes("not found")) {
       return { 
         isValid: false, 
-        error: "Transaction not found on Base Mainnet blockchain after waiting 60+ seconds. Please ensure: (1) Your wallet is connected to Base Mainnet (Chain ID: 8453), (2) The transaction was actually sent and confirmed, (3) You're using the correct transaction hash. Check your transaction on https://basescan.org" 
+        error: "Transaction not found on Base Mainnet blockchain after waiting up to 60 seconds. Please check:\n\n1. Is your wallet connected to Base Mainnet (Chain ID: 8453)?\n2. Has the transaction been confirmed on the blockchain?\n3. Did you copy the correct transaction hash?\n\nVerify your transaction at: https://basescan.org/tx/[your-tx-hash]\n\nIf the transaction just happened, please wait a minute and try again." 
       };
     }
     
@@ -303,24 +304,65 @@ app.post("/api/links", async (req, res) => {
       });
     }
 
-    console.log(`Verifying transaction: ${txHash}`);
+    // Validate transaction hash format
+    if (!isValidTxHash(txHash)) {
+      return res.status(400).json({ 
+        error: "Invalid transaction hash format. Must be 66 characters starting with 0x" 
+      });
+    }
+
+    // STEP 1: Check if transaction has already been used (before blockchain verification)
+    console.log(`🔍 Checking if transaction ${txHash} has already been used...`);
+    const supabase = storage.getCurrentLink.__proto__.constructor.name === 'AsyncFunction' 
+      ? (() => {
+          const supabaseUrl = process.env.SUPABASE_URL;
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+          if (!supabaseUrl || !supabaseKey) throw new Error("Database not configured");
+          return createClient(supabaseUrl, supabaseKey);
+        })()
+      : null;
+    
+    if (supabase) {
+      const { data: existingLink, error: checkError } = await supabase
+        .from('links')
+        .select('id, tx_hash')
+        .eq('tx_hash', txHash)
+        .maybeSingle();
+      
+      if (existingLink) {
+        console.log(`❌ Transaction ${txHash} has already been used`);
+        return res.status(400).json({ 
+          error: "This transaction has already been used to submit a link. Each transaction can only be used once." 
+        });
+      }
+      console.log(`✓ Transaction is new and hasn't been used before`);
+    }
+
+    // STEP 2: Verify the payment on blockchain
+    console.log(`🔗 Verifying transaction on Base Mainnet blockchain: ${txHash}`);
+    console.log(`⏳ This may take up to 60 seconds if the transaction is very recent...`);
+    
     const verification = await verifyETHPayment(txHash);
     
     if (!verification.isValid) {
-      console.error(`Transaction verification failed: ${verification.error}`);
+      console.error(`❌ Transaction verification failed: ${verification.error}`);
       return res.status(400).json({ 
         error: verification.error || "Transaction verification failed" 
       });
     }
 
+    // STEP 3: Verify sender matches the claimed submitter
     if (verification.from?.toLowerCase() !== submittedBy.toLowerCase()) {
-      console.error(`Submitter address mismatch: claimed ${submittedBy}, actual ${verification.from}`);
+      console.error(`❌ Submitter address mismatch: claimed ${submittedBy}, actual ${verification.from}`);
       return res.status(400).json({ 
-        error: "Submitter address does not match transaction sender" 
+        error: "Submitter address does not match transaction sender. Please ensure you're submitting with the same wallet that sent the payment." 
       });
     }
 
-    console.log(`Transaction verified successfully from ${verification.from}`);
+    console.log(`✅ Transaction verified successfully from ${verification.from}`);
+    console.log(`💾 Saving link to database...`);
+    
+    // STEP 4: Save to database
     const link = await storage.createLink({
       url,
       txHash,
@@ -329,18 +371,25 @@ app.post("/api/links", async (req, res) => {
       submitterPfpUrl
     });
     
+    console.log(`✅ Link created successfully with ID: ${link.id}`);
     res.status(201).json(link);
   } catch (error) {
-    console.error("Error creating link:", error);
+    console.error("❌ Error creating link:", error);
     
-    if (error instanceof Error && error.message.includes("duplicate key")) {
+    // Handle duplicate transaction error (database constraint)
+    if (error instanceof Error && (
+      error.message.includes("duplicate key") || 
+      error.message.includes("unique constraint") ||
+      error.message.includes("tx_hash")
+    )) {
       return res.status(400).json({ 
-        error: "This transaction has already been used to submit a link" 
+        error: "This transaction has already been used to submit a link. Each transaction can only be used once." 
       });
     }
     
+    // Handle other errors
     res.status(500).json({ 
-      error: error instanceof Error ? error.message : "Failed to create link" 
+      error: error instanceof Error ? error.message : "Failed to create link. Please try again." 
     });
   }
 });
