@@ -1,14 +1,14 @@
 {
-  "buildCommand": "bash scripts/build-vercel.sh",
+  "buildCommand": "vite build",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.cjs"
+      "source": "/api/:path*",
+      "destination": "/api"
     },
     {
       "source": "/frame",
-      "destination": "/api/index.cjs"
+      "destination": "/api"
     }
   ],
   "headers": [
@@ -18,6 +18,10 @@
         {
           "key": "X-Robots-Tag",
           "value": "all"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     }
