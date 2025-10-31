@@ -1,5 +1,120 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
+const { createPublicClient, http } = require('viem');
+const { base } = require('viem/chains');
+
+// Vercel runtime configuration - use Node.js instead of Edge
+exports.config = {
+  runtime: 'nodejs20.x'
+};
+
+// Transaction verification utilities
+const BASE_MAINNET_RPC = process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org";
+const OWNER_WALLET = (process.env.OWNER_WALLET_ADDRESS || "0x31F02Ed2c900A157C851786B43772F86151C7E34").toLowerCase();
+const REQUIRED_AMOUNT = BigInt(10000000000000);
+
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(BASE_MAINNET_RPC),
+});
+
+function isValidTxHash(hash) {
+  return /^0x[a-fA-F0-9]{64}$/.test(hash);
+}
+
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchTransactionWithRetry(txHash, maxRetries = 12, baseDelay = 3000) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const [receipt, transaction] = await Promise.all([
+        publicClient.getTransactionReceipt({ hash: txHash }),
+        publicClient.getTransaction({ hash: txHash }),
+      ]);
+
+      console.log(`✓ Transaction found after ${attempt + 1} attempt(s)`);
+      return { receipt, transaction };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = lastError.message.toLowerCase();
+      
+      const isRetryableError = 
+        errorMessage.includes("not found") ||
+        errorMessage.includes("not available") ||
+        errorMessage.includes("could not find") ||
+        errorMessage.includes("transaction not found") ||
+        errorMessage.includes("receipt not found") ||
+        errorMessage.includes("not be processed");
+
+      if (!isRetryableError || attempt === maxRetries - 1) {
+        throw lastError;
+      }
+
+      const delay = baseDelay * Math.pow(1.3, attempt);
+      console.log(`⏳ Transaction not indexed yet, retrying in ${Math.round(delay)}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      await sleep(delay);
+    }
+  }
+
+  throw lastError || new Error("Failed to fetch transaction after retries");
+}
+
+async function verifyETHPayment(txHash) {
+  try {
+    if (!isValidTxHash(txHash)) {
+      return { isValid: false, error: "Invalid transaction hash format" };
+    }
+
+    const { receipt, transaction } = await fetchTransactionWithRetry(txHash);
+
+    if (receipt.status !== "success") {
+      return { isValid: false, error: "Transaction failed on blockchain" };
+    }
+
+    const recipientAddress = transaction.to?.toLowerCase();
+    const amount = transaction.value;
+
+    if (recipientAddress !== OWNER_WALLET) {
+      return { 
+        isValid: false, 
+        error: `Payment must be sent to ${OWNER_WALLET}, but was sent to ${recipientAddress}` 
+      };
+    }
+
+    if (amount < REQUIRED_AMOUNT) {
+      return { 
+        isValid: false, 
+        error: `Insufficient payment amount. Required: 0.00001 ETH, sent: ${Number(amount) / 1e18} ETH` 
+      };
+    }
+
+    return {
+      isValid: true,
+      from: transaction.from,
+      to: recipientAddress,
+      amount,
+    };
+  } catch (error) {
+    console.error("Error verifying transaction:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to verify transaction";
+    
+    if (errorMessage.toLowerCase().includes("not found")) {
+      return { 
+        isValid: false, 
+        error: "Transaction not found on Base Mainnet blockchain after waiting 60+ seconds. Please ensure: (1) Your wallet is connected to Base Mainnet (Chain ID: 8453), (2) The transaction was actually sent and confirmed, (3) You're using the correct transaction hash. Check your transaction on https://basescan.org" 
+      };
+    }
+    
+    return { 
+      isValid: false, 
+      error: errorMessage
+    };
+  }
+}
 
 const storage = (() => {
   const getSupabaseClient = () => {
