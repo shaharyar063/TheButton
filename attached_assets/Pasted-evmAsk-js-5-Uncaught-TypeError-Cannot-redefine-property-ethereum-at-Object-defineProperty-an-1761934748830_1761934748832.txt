@@ -1,0 +1,63 @@
+evmAsk.js:5 Uncaught TypeError: Cannot redefine property: ethereum
+    at Object.defineProperty (<anonymous>)
+    at r.inject (evmAsk.js:5:5093)
+    at window.addEventListener.once (evmAsk.js:5:9013)Understand this error
+2inject.js:1 Port connected
+in-page.js:1 Failed to set window.ethereum
+(anonymous) @ in-page.js:1Understand this warning
+inpage.js:1 MetaMask encountered an error setting the global Ethereum provider - this is likely due to another Ethereum wallet extension also setting the global Ethereum provider: TypeError: Cannot set property ethereum of #<Window> which has only a getter
+    at a (inpage.js:1:51283)
+    at r.initializeProvider (inpage.js:1:51054)
+    at Object.<anonymous> (inpage.js:1:2308)
+    at Object.<anonymous> (inpage.js:1:6316)
+    at 2.../../shared/modules/provider-injection (inpage.js:1:6329)
+    at i (inpage.js:1:254)
+    at e (inpage.js:1:412)
+    at inpage.js:1:429
+a @ inpage.js:1Understand this error
+dist.94abdbf1.js:1 TronWeb is already initiated. TronLink will overwrite the current instance
+_bindTronWeb @ dist.94abdbf1.js:1Understand this error
+dist.94abdbf1.js:80 bybit:page provider inject code 
+in-page.js:9 Uncaught (in promise) TypeError: Cannot redefine property: isZerion
+    at Object.defineProperty (<anonymous>)
+    at Object.l (in-page.js:9:316844)
+    at Object.<anonymous> (in-page.js:1:1221)
+    at o (in-page.js:1:463)
+    at in-page.js:9:320210
+    at in-page.js:9:320221Understand this error
+provider-bridge.js:1164  content: background > inpage: {"id":"pelagus-internal","jsonrpc":"2.0","result":{"method":"pelagus_getConfig","defaultWallet":false}}
+provider-bridge.js:1164  content: background > inpage: {"jsonrpc":"2.0","result":{"method":"pelagus_healthCheck"}}
+provider-bridge.js:1164  content: background > inpage: {"id":"pelagus-internal","jsonrpc":"2.0","result":{"method":"pelagus_getConfig","defaultWallet":false,"chainId":"0x2328"}}
+content.js:2 Check phishing by URL: Passed.
+index-D9g4IQIq.js:195 ✅ Polling for updates every 5 seconds
+index-D9g4IQIq.js:132 Failed to get accounts: RpcResponse.InternalErrorError: Cannot read properties of undefined (reading 'error')
+    at Object.request (index-D9g4IQIq.js:130:5376)
+    at async Object.request (index-D9g4IQIq.js:126:9094)
+    at async index-D9g4IQIq.js:132:5040
+(anonymous) @ index-D9g4IQIq.js:132Understand this error
+recent-clicks:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+current-link:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+/api/base-url:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+injected.js:1 Backpack couldn't override `window.ethereum`.
+console.warn @ injected.js:1Understand this warning
+provider-bridge.js:1164  content: background > inpage: {"jsonrpc":"2.0","result":{"method":"pelagus_healthCheck"}}
+current-link:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+recent-clicks:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+provider-bridge.js:1164  content: background > inpage: {"jsonrpc":"2.0","result":{"method":"pelagus_healthCheck"}}
+frame_ant.js:2  GET https://the-button-eight.vercel.app/api/recent-clicks 500 (Internal Server Error)
+window.fetch @ frame_ant.js:2
+value @ injected.js:1
+(anonymous) @ index-D9g4IQIq.js:48
+s @ index-D9g4IQIq.js:48
+_ @ index-D9g4IQIq.js:48
+start @ index-D9g4IQIq.js:48
+fetch @ index-D9g4IQIq.js:48
+(anonymous) @ index-D9g4IQIq.js:48
+(anonymous) @ index-D9g4IQIq.js:48
+batch @ index-D9g4IQIq.js:48
+refetchQueries @ index-D9g4IQIq.js:48
+(anonymous) @ index-D9g4IQIq.js:48
+batch @ index-D9g4IQIq.js:48
+invalidateQueries @ index-D9g4IQIq.js:48
+t @ index-D9g4IQIq.js:195Understand this error
+frame_ant.js:2  GET https://the-button-eight.vercel.app/api/current-link 500 (Internal Server Error)
