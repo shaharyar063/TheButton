@@ -181,6 +181,30 @@ const storage = (() => {
     };
   };
 
+  const mapOwnership = (data) => {
+    const formatTimestamp = (timestamp) => {
+      if (timestamp instanceof Date) {
+        return timestamp.toISOString();
+      } else if (typeof timestamp === 'string') {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
+        }
+      }
+      return timestamp;
+    };
+
+    return {
+      id: data.id,
+      ownerAddress: data.owner_address,
+      txHash: data.tx_hash,
+      startsAt: formatTimestamp(data.starts_at),
+      expiresAt: formatTimestamp(data.expires_at),
+      durationSeconds: data.duration_seconds,
+      createdAt: formatTimestamp(data.created_at),
+    };
+  };
+
   return {
     async getCurrentLink() {
       try {
@@ -253,7 +277,7 @@ const storage = (() => {
     async createClick(insertClick) {
       try {
         const supabase = getSupabaseClient();
-        const { data, error } = await supabase
+        const { data, error} = await supabase
           .from('clicks')
           .insert({
             link_id: insertClick.linkId,
@@ -270,6 +294,147 @@ const storage = (() => {
         }
 
         return mapClick(data);
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    async createOwnership(insertOwnership) {
+      try {
+        const supabase = getSupabaseClient();
+        
+        const startsAt = new Date();
+        const expiresAt = new Date(startsAt.getTime() + insertOwnership.durationSeconds * 1000);
+        
+        const { data, error } = await supabase
+          .from('button_ownerships')
+          .insert({
+            owner_address: insertOwnership.ownerAddress,
+            tx_hash: insertOwnership.txHash,
+            duration_seconds: insertOwnership.durationSeconds,
+            starts_at: startsAt.toISOString(),
+            expires_at: expiresAt.toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(`Failed to create ownership: ${error.message}`);
+        }
+
+        return mapOwnership(data);
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    async getActiveOwnership() {
+      try {
+        const supabase = getSupabaseClient();
+        const now = new Date().toISOString();
+        
+        const { data, error } = await supabase
+          .from('button_ownerships')
+          .select('*')
+          .gte('expires_at', now)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error fetching active ownership:", error);
+          return undefined;
+        }
+
+        if (!data) {
+          return undefined;
+        }
+
+        const ownership = mapOwnership(data);
+
+        const { data: linkData } = await supabase
+          .from('links')
+          .select('*')
+          .eq('ownership_id', ownership.id)
+          .single();
+
+        return {
+          ...ownership,
+          link: linkData ? mapLink(linkData) : undefined
+        };
+      } catch (error) {
+        console.error("Error fetching active ownership:", error);
+        return undefined;
+      }
+    },
+
+    async getOwnershipById(id) {
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase
+          .from('button_ownerships')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error fetching ownership by id:", error);
+          return undefined;
+        }
+
+        return data ? mapOwnership(data) : undefined;
+      } catch (error) {
+        console.error("Error fetching ownership by id:", error);
+        return undefined;
+      }
+    },
+
+    async updateOwnershipLink(ownershipId, linkData) {
+      try {
+        const supabase = getSupabaseClient();
+        
+        const { data: existingLink } = await supabase
+          .from('links')
+          .select('*')
+          .eq('ownership_id', ownershipId)
+          .single();
+
+        if (existingLink) {
+          const { data: updatedLink, error: updateError } = await supabase
+            .from('links')
+            .update({ url: linkData.url })
+            .eq('ownership_id', ownershipId)
+            .select()
+            .single();
+
+          if (updateError) {
+            throw new Error(`Failed to update link: ${updateError.message}`);
+          }
+
+          return mapLink(updatedLink);
+        } else {
+          const ownership = await this.getOwnershipById(ownershipId);
+          if (!ownership) {
+            throw new Error("Ownership not found");
+          }
+
+          const { data: newLink, error: createError } = await supabase
+            .from('links')
+            .insert({
+              ownership_id: ownershipId,
+              url: linkData.url,
+              submitted_by: ownership.ownerAddress,
+              tx_hash: ownership.txHash,
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            throw new Error(`Failed to create link: ${createError.message}`);
+          }
+
+          return mapLink(newLink);
+        }
       } catch (error) {
         throw error;
       }
@@ -439,6 +604,119 @@ app.post("/api/clicks", async (req, res) => {
     console.error("Error creating click:", error);
     res.status(500).json({ 
       error: error instanceof Error ? error.message : "Failed to create click" 
+    });
+  }
+});
+
+app.post("/api/ownerships", async (req, res) => {
+  try {
+    const { ownerAddress, txHash, durationSeconds = 3600 } = req.body;
+
+    if (!ownerAddress || !txHash) {
+      return res.status(400).json({ error: "Owner address and transaction hash required" });
+    }
+
+    console.log(`Verifying ownership transaction: ${txHash}`);
+    const verification = await verifyETHPayment(txHash);
+    
+    if (!verification.isValid) {
+      console.error(`Ownership transaction verification failed: ${verification.error}`);
+      return res.status(400).json({ 
+        error: verification.error || "Transaction verification failed" 
+      });
+    }
+
+    if (verification.from?.toLowerCase() !== ownerAddress.toLowerCase()) {
+      console.error(`Owner address mismatch: claimed ${ownerAddress}, actual ${verification.from}`);
+      return res.status(400).json({ 
+        error: "Owner address does not match transaction sender" 
+      });
+    }
+
+    console.log(`Ownership transaction verified successfully from ${verification.from}`);
+    const ownership = await storage.createOwnership({
+      ownerAddress,
+      txHash,
+      durationSeconds
+    });
+    res.status(201).json(ownership);
+  } catch (error) {
+    console.error("Error creating ownership:", error);
+    
+    if (error instanceof Error && (
+      error.message.includes("duplicate key") || 
+      error.message.includes("unique constraint") ||
+      error.message.includes("tx_hash")
+    )) {
+      return res.status(400).json({ 
+        error: "This transaction has already been used to purchase ownership" 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : "Failed to create ownership" 
+    });
+  }
+});
+
+app.get("/api/ownerships/current", async (req, res) => {
+  try {
+    const ownership = await storage.getActiveOwnership();
+    
+    if (!ownership) {
+      return res.status(404).json({ error: "No active ownership" });
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(ownership.expiresAt);
+    const remainingSeconds = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
+
+    res.json({
+      ...ownership,
+      remainingSeconds
+    });
+  } catch (error) {
+    console.error("Error fetching active ownership:", error);
+    res.status(500).json({ error: "Failed to fetch active ownership" });
+  }
+});
+
+app.patch("/api/ownerships/:id/link", async (req, res) => {
+  try {
+    const ownershipId = req.params.id;
+    const { ownerAddress, url } = req.body;
+    
+    if (!ownerAddress) {
+      return res.status(400).json({ error: "Owner address required for verification" });
+    }
+
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+
+    const ownership = await storage.getOwnershipById(ownershipId);
+    
+    if (!ownership) {
+      return res.status(404).json({ error: "Ownership not found" });
+    }
+
+    if (ownership.ownerAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
+      return res.status(403).json({ error: "Only the owner can edit the link" });
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(ownership.expiresAt);
+    
+    if (now >= expiresAt) {
+      return res.status(403).json({ error: "Ownership has expired" });
+    }
+
+    const link = await storage.updateOwnershipLink(ownershipId, { url });
+    res.json(link);
+  } catch (error) {
+    console.error("Error updating ownership link:", error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : "Failed to update ownership link" 
     });
   }
 });
