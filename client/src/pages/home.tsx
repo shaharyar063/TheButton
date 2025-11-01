@@ -309,6 +309,9 @@ export default function Home() {
           onClick={handleRevealClick}
           isLoading={ownershipLoading || recordClickMutation.isPending || isRevealing}
           hasLink={!!ownership?.link}
+          buttonColor={ownership?.buttonColor}
+          buttonEmoji={ownership?.buttonEmoji}
+          buttonImageUrl={ownership?.buttonImageUrl}
         />
         
         {ownership && remainingTime !== null && remainingTime > 0 && (
