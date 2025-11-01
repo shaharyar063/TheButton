@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLinkSchema, insertClickSchema, insertButtonOwnershipSchema, updateLinkSchema } from "@shared/schema";
+import { insertLinkSchema, insertClickSchema, insertButtonOwnershipSchema, updateLinkSchema, updateOwnershipVisualsSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { verifyETHPayment } from "./contract-utils";
 import { appEvents } from "./events";
@@ -589,8 +589,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log(`Ownership transaction verified successfully from ${verification.from}`);
-      const ownership = await storage.createOwnership(validationResult.data);
+      const paymentWei = verification.amount || BigInt(0);
+      const costPerHour = BigInt(10000000000000);
+      const hours = Number(paymentWei / costPerHour);
+      const durationSeconds = Math.floor(hours * 3600);
+
+      if (durationSeconds < 60) {
+        return res.status(400).json({ 
+          error: "Payment amount too small. Minimum is 0.00001 ETH for 1 hour." 
+        });
+      }
+
+      console.log(`Ownership transaction verified: ${hours} hour(s) purchased (${durationSeconds} seconds)`);
+      
+      const ownershipData = {
+        ...validationResult.data,
+        durationSeconds: durationSeconds
+      };
+      
+      const ownership = await storage.createOwnership(ownershipData);
       res.status(201).json(ownership);
     } catch (error) {
       console.error("Error creating ownership:", error);
@@ -626,6 +643,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching active ownership:", error);
       res.status(500).json({ error: "Failed to fetch active ownership" });
+    }
+  });
+
+  app.patch("/api/ownerships/:id/visuals", async (req, res) => {
+    try {
+      const ownershipId = req.params.id;
+      const { ownerAddress } = req.body;
+      
+      if (!ownerAddress) {
+        return res.status(400).json({ error: "Owner address required for verification" });
+      }
+
+      const ownership = await storage.getOwnershipById(ownershipId);
+      
+      if (!ownership) {
+        return res.status(404).json({ error: "Ownership not found" });
+      }
+
+      if (ownership.ownerAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
+        return res.status(403).json({ error: "Only the owner can edit visuals" });
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(ownership.expiresAt);
+      
+      if (now >= expiresAt) {
+        return res.status(403).json({ error: "Ownership has expired" });
+      }
+
+      const validationResult = updateOwnershipVisualsSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const errorMessage = fromZodError(validationResult.error).toString();
+        return res.status(400).json({ error: errorMessage });
+      }
+
+      const updatedOwnership = await storage.updateOwnershipVisuals(ownershipId, validationResult.data);
+      appEvents.emitLinkCreated(updatedOwnership as any);
+      res.json(updatedOwnership);
+    } catch (error) {
+      console.error("Error updating ownership visuals:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to update ownership visuals" 
+      });
     }
   });
 
