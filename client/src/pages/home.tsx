@@ -23,9 +23,13 @@ export default function Home() {
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editUrl, setEditUrl] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("0.00001");
+  const [buttonColor, setButtonColor] = useState("");
+  const [buttonEmoji, setButtonEmoji] = useState("");
+  const [buttonImageUrl, setButtonImageUrl] = useState("");
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
-  const { toast } = useToast();
+  const { toast} = useToast();
   const { address, isConnected, sendETHPayment } = useWeb3();
   const { user: farcasterUser, walletAddress: farcasterWallet } = useFarcaster();
 
@@ -130,8 +134,6 @@ export default function Home() {
         title: "Link updated!",
         description: "Your link has been saved.",
       });
-      setIsEditModalOpen(false);
-      setEditUrl("");
     },
     onError: (error: Error) => {
       toast({
@@ -141,6 +143,44 @@ export default function Home() {
       });
     },
   });
+
+  const editVisualsMutation = useMutation({
+    mutationFn: async (visuals: { buttonColor?: string; buttonEmoji?: string; buttonImageUrl?: string }) => {
+      if (!ownership) throw new Error("No ownership");
+      return apiRequest("PATCH", `/api/ownerships/${ownership.id}/visuals`, {
+        ownerAddress: effectiveAddress,
+        ...visuals,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ownerships/current"] });
+      toast({
+        title: "Button customized!",
+        description: "Your button appearance has been updated.",
+      });
+      setIsEditModalOpen(false);
+      setButtonColor("");
+      setButtonEmoji("");
+      setButtonImageUrl("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const calculateHours = (ethAmount: string): number => {
+    try {
+      const amount = parseFloat(ethAmount);
+      if (isNaN(amount) || amount <= 0) return 0;
+      return amount / 0.00001;
+    } catch {
+      return 0;
+    }
+  };
 
   const handleBuyOwnership = async () => {
     if (!effectiveAddress) {
@@ -161,13 +201,23 @@ export default function Home() {
       return;
     }
 
+    const hours = calculateHours(paymentAmount);
+    if (hours < 1) {
+      toast({
+        title: "Invalid amount",
+        description: "Minimum payment is 0.00001 ETH for 1 hour",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       toast({
         title: "Payment required",
-        description: "Please approve the 0.00001 ETH payment...",
+        description: `Please approve the ${paymentAmount} ETH payment...`,
       });
 
-      const txHash = await sendETHPayment("0.00001", effectiveAddress);
+      const txHash = await sendETHPayment(paymentAmount, effectiveAddress);
       
       toast({
         title: "Transaction submitted",
@@ -281,6 +331,9 @@ export default function Home() {
                 <Button
                   onClick={() => {
                     setEditUrl(ownership.link?.url || "");
+                    setButtonColor(ownership.buttonColor || "");
+                    setButtonEmoji(ownership.buttonEmoji || "");
+                    setButtonImageUrl(ownership.buttonImageUrl || "");
                     setIsEditModalOpen(true);
                   }}
                   variant="default"
@@ -355,23 +408,38 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle>Buy Button Ownership</DialogTitle>
             <DialogDescription>
-              Control the mystery link for 1 hour
+              Pay 0.00001 ETH per hour - the more you pay, the longer you own it
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="payment-amount">Payment Amount (ETH)</Label>
+              <Input
+                id="payment-amount"
+                type="number"
+                step="0.00001"
+                min="0.00001"
+                placeholder="0.00001"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                data-testid="input-payment-amount"
+              />
+            </div>
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Duration:</span>
-                <span className="font-semibold">1 hour</span>
+                <span className="font-semibold font-mono" data-testid="text-calculated-hours">
+                  {calculateHours(paymentAmount).toFixed(1)} hour{calculateHours(paymentAmount) !== 1 ? 's' : ''}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Price:</span>
-                <span className="font-semibold">0.00001 ETH</span>
+                <span className="font-semibold font-mono">{paymentAmount} ETH</span>
               </div>
             </div>
             <Button
               onClick={handleBuyOwnership}
-              disabled={buyOwnershipMutation.isPending}
+              disabled={buyOwnershipMutation.isPending || calculateHours(paymentAmount) < 1}
               className="w-full"
               data-testid="button-confirm-buy"
             >
@@ -384,9 +452,9 @@ export default function Home() {
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-md" data-testid="modal-edit-link">
           <DialogHeader>
-            <DialogTitle>Edit Your Link</DialogTitle>
+            <DialogTitle>Customize Your Button</DialogTitle>
             <DialogDescription>
-              Set the mystery link for your ownership period
+              Edit the link and appearance of your button
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -401,14 +469,96 @@ export default function Home() {
                 data-testid="input-edit-url"
               />
             </div>
-            <Button
-              onClick={() => editLinkMutation.mutate(editUrl)}
-              disabled={!editUrl || editLinkMutation.isPending}
-              className="w-full"
-              data-testid="button-confirm-edit"
-            >
-              {editLinkMutation.isPending ? "Saving..." : "Save Link"}
-            </Button>
+
+            <div className="border-t pt-4">
+              <Label className="text-base">Button Appearance</Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Choose either an image OR color/emoji combination
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="button-image">Button Image URL</Label>
+                  <Input
+                    id="button-image"
+                    type="url"
+                    placeholder="https://example.com/image.png"
+                    value={buttonImageUrl}
+                    onChange={(e) => {
+                      setButtonImageUrl(e.target.value);
+                      if (e.target.value) {
+                        setButtonColor("");
+                        setButtonEmoji("");
+                      }
+                    }}
+                    disabled={!!buttonColor || !!buttonEmoji}
+                    data-testid="input-button-image"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="button-color">Button Color</Label>
+                    <Input
+                      id="button-color"
+                      type="color"
+                      value={buttonColor || "#3B82F6"}
+                      onChange={(e) => {
+                        setButtonColor(e.target.value);
+                        if (e.target.value) setButtonImageUrl("");
+                      }}
+                      disabled={!!buttonImageUrl}
+                      data-testid="input-button-color"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="button-emoji">Button Emoji</Label>
+                    <Input
+                      id="button-emoji"
+                      type="text"
+                      maxLength={2}
+                      placeholder="🔗"
+                      value={buttonEmoji}
+                      onChange={(e) => {
+                        setButtonEmoji(e.target.value);
+                        if (e.target.value) setButtonImageUrl("");
+                      }}
+                      disabled={!!buttonImageUrl}
+                      data-testid="input-button-emoji"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => editLinkMutation.mutate(editUrl)}
+                disabled={!editUrl || editLinkMutation.isPending}
+                className="flex-1"
+                variant="outline"
+                data-testid="button-save-link"
+              >
+                {editLinkMutation.isPending ? "Saving..." : "Save Link"}
+              </Button>
+              <Button
+                onClick={() => {
+                  const visuals: any = {};
+                  if (buttonImageUrl) {
+                    visuals.buttonImageUrl = buttonImageUrl;
+                  } else {
+                    if (buttonColor) visuals.buttonColor = buttonColor;
+                    if (buttonEmoji) visuals.buttonEmoji = buttonEmoji;
+                  }
+                  editVisualsMutation.mutate(visuals);
+                }}
+                disabled={(!buttonColor && !buttonEmoji && !buttonImageUrl) || editVisualsMutation.isPending}
+                className="flex-1"
+                data-testid="button-save-visuals"
+              >
+                {editVisualsMutation.isPending ? "Saving..." : "Save Appearance"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

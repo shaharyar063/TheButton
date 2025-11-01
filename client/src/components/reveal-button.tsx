@@ -5,9 +5,24 @@ interface RevealButtonProps {
   onClick: () => void;
   isLoading?: boolean;
   hasLink?: boolean;
+  buttonColor?: string | null;
+  buttonEmoji?: string | null;
+  buttonImageUrl?: string | null;
 }
 
-export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps) {
+export function RevealButton({ onClick, isLoading, hasLink, buttonColor, buttonEmoji, buttonImageUrl }: RevealButtonProps) {
+  const defaultColor = "#3b82f6";
+  const effectiveColor = buttonColor || defaultColor;
+  
+  const darkenColor = (color: string, amount: number = 40) => {
+    const num = parseInt(color.replace("#", ""), 16);
+    const r = Math.max(0, (num >> 16) - amount);
+    const g = Math.max(0, ((num >> 8) & 0x00FF) - amount);
+    const b = Math.max(0, (num & 0x0000FF) - amount);
+    return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+  };
+  
+  const shadowColor = darkenColor(effectiveColor);
   return (
     <div className="flex flex-col items-center gap-8">
       <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
@@ -24,10 +39,12 @@ export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps)
           "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30",
         )}
         style={{
-          background: "linear-gradient(145deg, #60a5fa, #3b82f6)",
+          background: buttonImageUrl 
+            ? `url(${buttonImageUrl}) center/cover`
+            : `linear-gradient(145deg, ${effectiveColor}dd, ${effectiveColor})`,
           boxShadow: `
             inset 0px 2px 0px rgba(255, 255, 255, 0.4),
-            0px 12px 0px #1e40af,
+            0px 12px 0px ${shadowColor},
             0px 16px 24px rgba(0, 0, 0, 0.4)
           `,
           transform: "translateY(0px)",
@@ -38,7 +55,7 @@ export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps)
             e.currentTarget.style.boxShadow = `
               inset 0px 4px 12px rgba(0, 0, 0, 0.5),
               inset 0px -2px 0px rgba(255, 255, 255, 0.1),
-              0px 4px 0px #1e40af,
+              0px 4px 0px ${shadowColor},
               0px 8px 12px rgba(0, 0, 0, 0.3)
             `;
           }
@@ -47,7 +64,7 @@ export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps)
           e.currentTarget.style.transform = "translateY(0px)";
           e.currentTarget.style.boxShadow = `
             inset 0px 2px 0px rgba(255, 255, 255, 0.4),
-            0px 12px 0px #1e40af,
+            0px 12px 0px ${shadowColor},
             0px 16px 24px rgba(0, 0, 0, 0.4)
           `;
         }}
@@ -55,7 +72,7 @@ export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps)
           e.currentTarget.style.transform = "translateY(0px)";
           e.currentTarget.style.boxShadow = `
             inset 0px 2px 0px rgba(255, 255, 255, 0.4),
-            0px 12px 0px #1e40af,
+            0px 12px 0px ${shadowColor},
             0px 16px 24px rgba(0, 0, 0, 0.4)
           `;
         }}
@@ -71,8 +88,14 @@ export function RevealButton({ onClick, isLoading, hasLink }: RevealButtonProps)
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3">
-              <span className="text-2xl sm:text-3xl font-bold">Reveal Link</span>
-              <ExternalLink className="w-8 h-8" />
+              {buttonEmoji ? (
+                <span className="text-6xl sm:text-7xl">{buttonEmoji}</span>
+              ) : (
+                <>
+                  <span className="text-2xl sm:text-3xl font-bold">Reveal Link</span>
+                  <ExternalLink className="w-8 h-8" />
+                </>
+              )}
             </div>
           )}
         </div>
