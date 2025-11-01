@@ -1,4 +1,12 @@
-import { type Link, type InsertLink, type Click, type InsertClick } from "@shared/schema";
+import { 
+  type Link, 
+  type InsertLink, 
+  type Click, 
+  type InsertClick,
+  type ButtonOwnership,
+  type InsertButtonOwnership,
+  type UpdateLink
+} from "@shared/schema";
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const getSupabaseClient = (): SupabaseClient => {
@@ -21,6 +29,12 @@ export interface IStorage {
   createLink(link: InsertLink): Promise<Link>;
   getRecentClicks(limit?: number): Promise<Click[]>;
   createClick(click: InsertClick): Promise<Click>;
+  
+  // Ownership methods
+  createOwnership(ownership: InsertButtonOwnership): Promise<ButtonOwnership>;
+  getActiveOwnership(): Promise<(ButtonOwnership & { link?: Link }) | undefined>;
+  getOwnershipById(id: string): Promise<ButtonOwnership | undefined>;
+  updateOwnershipLink(ownershipId: string, linkData: UpdateLink): Promise<Link>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -135,12 +149,37 @@ export class PostgresStorage implements IStorage {
     
     return {
       id: data.id,
+      ownershipId: data.ownership_id,
       url: data.url,
       submittedBy: data.submitted_by,
       submitterUsername: data.submitter_username,
       submitterPfpUrl: data.submitter_pfp_url,
       txHash: data.tx_hash,
       createdAt: createdAt,
+    };
+  }
+
+  private mapOwnership(data: any): ButtonOwnership {
+    const formatTimestamp = (timestamp: any): string => {
+      if (timestamp instanceof Date) {
+        return timestamp.toISOString();
+      } else if (typeof timestamp === 'string') {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
+        }
+      }
+      return timestamp;
+    };
+
+    return {
+      id: data.id,
+      ownerAddress: data.owner_address,
+      txHash: data.tx_hash,
+      startsAt: formatTimestamp(data.starts_at),
+      expiresAt: formatTimestamp(data.expires_at),
+      durationSeconds: data.duration_seconds,
+      createdAt: formatTimestamp(data.created_at),
     };
   }
 
@@ -165,6 +204,150 @@ export class PostgresStorage implements IStorage {
       userAgent: data.user_agent,
       clickedAt: clickedAt,
     };
+  }
+
+  async createOwnership(insertOwnership: InsertButtonOwnership): Promise<ButtonOwnership> {
+    try {
+      const supabase = getSupabaseClient();
+      
+      const startsAt = new Date();
+      const expiresAt = new Date(startsAt.getTime() + insertOwnership.durationSeconds * 1000);
+      
+      const { data, error } = await supabase
+        .from('button_ownerships')
+        .insert({
+          owner_address: insertOwnership.ownerAddress,
+          tx_hash: insertOwnership.txHash,
+          duration_seconds: insertOwnership.durationSeconds,
+          starts_at: startsAt.toISOString(),
+          expires_at: expiresAt.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating ownership:", error);
+        throw new Error(`Failed to create ownership: ${error.message}`);
+      }
+
+      return this.mapOwnership(data);
+    } catch (error) {
+      console.error("Error creating ownership:", error);
+      throw new Error(`Failed to create ownership: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+
+  async getActiveOwnership(): Promise<(ButtonOwnership & { link?: Link }) | undefined> {
+    try {
+      const supabase = getSupabaseClient();
+      const now = new Date().toISOString();
+      
+      const { data, error } = await supabase
+        .from('button_ownerships')
+        .select('*')
+        .gte('expires_at', now)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching active ownership:", error);
+        return undefined;
+      }
+
+      if (!data) {
+        return undefined;
+      }
+
+      const ownership = this.mapOwnership(data);
+
+      const { data: linkData } = await supabase
+        .from('links')
+        .select('*')
+        .eq('ownership_id', ownership.id)
+        .single();
+
+      return {
+        ...ownership,
+        link: linkData ? this.mapLink(linkData) : undefined
+      };
+    } catch (error) {
+      console.error("Error fetching active ownership:", error);
+      return undefined;
+    }
+  }
+
+  async getOwnershipById(id: string): Promise<ButtonOwnership | undefined> {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('button_ownerships')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching ownership by id:", error);
+        return undefined;
+      }
+
+      return data ? this.mapOwnership(data) : undefined;
+    } catch (error) {
+      console.error("Error fetching ownership by id:", error);
+      return undefined;
+    }
+  }
+
+  async updateOwnershipLink(ownershipId: string, linkData: UpdateLink): Promise<Link> {
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { data: existingLink, error: fetchError } = await supabase
+        .from('links')
+        .select('*')
+        .eq('ownership_id', ownershipId)
+        .single();
+
+      if (existingLink) {
+        const { data: updatedLink, error: updateError } = await supabase
+          .from('links')
+          .update({ url: linkData.url })
+          .eq('ownership_id', ownershipId)
+          .select()
+          .single();
+
+        if (updateError) {
+          throw new Error(`Failed to update link: ${updateError.message}`);
+        }
+
+        return this.mapLink(updatedLink);
+      } else {
+        const ownership = await this.getOwnershipById(ownershipId);
+        if (!ownership) {
+          throw new Error("Ownership not found");
+        }
+
+        const { data: newLink, error: createError } = await supabase
+          .from('links')
+          .insert({
+            ownership_id: ownershipId,
+            url: linkData.url,
+            submitted_by: ownership.ownerAddress,
+            tx_hash: ownership.txHash,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          throw new Error(`Failed to create link: ${createError.message}`);
+        }
+
+        return this.mapLink(newLink);
+      }
+    } catch (error) {
+      console.error("Error updating ownership link:", error);
+      throw new Error(`Failed to update ownership link: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 }
 
