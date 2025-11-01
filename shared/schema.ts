@@ -1,10 +1,21 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const buttonOwnerships = pgTable("button_ownerships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerAddress: text("owner_address").notNull(),
+  txHash: text("tx_hash").notNull().unique(),
+  startsAt: timestamp("starts_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  durationSeconds: integer("duration_seconds").notNull().default(3600),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const links = pgTable("links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownershipId: varchar("ownership_id").references(() => buttonOwnerships.id),
   url: text("url").notNull(),
   submittedBy: text("submitted_by").notNull(),
   submitterUsername: text("submitter_username"),
@@ -23,6 +34,17 @@ export const clicks = pgTable("clicks", {
   clickedAt: timestamp("clicked_at").defaultNow().notNull(),
 });
 
+export const insertButtonOwnershipSchema = createInsertSchema(buttonOwnerships).omit({
+  id: true,
+  startsAt: true,
+  expiresAt: true,
+  createdAt: true,
+}).extend({
+  ownerAddress: z.string().min(1, "Owner address required"),
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Invalid transaction hash"),
+  durationSeconds: z.number().int().positive().default(3600),
+});
+
 export const insertLinkSchema = createInsertSchema(links).omit({
   id: true,
   createdAt: true,
@@ -32,12 +54,19 @@ export const insertLinkSchema = createInsertSchema(links).omit({
   txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Invalid transaction hash"),
 });
 
+export const updateLinkSchema = z.object({
+  url: z.string().url("Please enter a valid URL"),
+});
+
 export const insertClickSchema = createInsertSchema(clicks).omit({
   id: true,
   clickedAt: true,
 });
 
+export type InsertButtonOwnership = z.infer<typeof insertButtonOwnershipSchema>;
+export type ButtonOwnership = typeof buttonOwnerships.$inferSelect;
 export type InsertLink = z.infer<typeof insertLinkSchema>;
 export type Link = typeof links.$inferSelect;
+export type UpdateLink = z.infer<typeof updateLinkSchema>;
 export type InsertClick = z.infer<typeof insertClickSchema>;
 export type Click = typeof clicks.$inferSelect;
