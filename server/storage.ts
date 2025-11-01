@@ -160,13 +160,17 @@ export class PostgresStorage implements IStorage {
   }
 
   private mapOwnership(data: any): ButtonOwnership {
-    const formatTimestamp = (timestamp: any): string => {
+    const formatTimestamp = (timestamp: any): Date => {
+      if (!timestamp) {
+        return timestamp;
+      }
       if (timestamp instanceof Date) {
-        return timestamp.toISOString();
-      } else if (typeof timestamp === 'string') {
+        return timestamp;
+      }
+      if (typeof timestamp === 'string') {
         const date = new Date(timestamp);
         if (!isNaN(date.getTime())) {
-          return date.toISOString();
+          return date;
         }
       }
       return timestamp;
