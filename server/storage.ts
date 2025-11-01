@@ -5,7 +5,8 @@ import {
   type InsertClick,
   type ButtonOwnership,
   type InsertButtonOwnership,
-  type UpdateLink
+  type UpdateLink,
+  type UpdateOwnershipVisuals
 } from "@shared/schema";
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -35,6 +36,7 @@ export interface IStorage {
   getActiveOwnership(): Promise<(ButtonOwnership & { link?: Link }) | undefined>;
   getOwnershipById(id: string): Promise<ButtonOwnership | undefined>;
   updateOwnershipLink(ownershipId: string, linkData: UpdateLink): Promise<Link>;
+  updateOwnershipVisuals(ownershipId: string, visuals: UpdateOwnershipVisuals): Promise<ButtonOwnership>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -183,6 +185,9 @@ export class PostgresStorage implements IStorage {
       startsAt: formatTimestamp(data.starts_at),
       expiresAt: formatTimestamp(data.expires_at),
       durationSeconds: data.duration_seconds,
+      buttonColor: data.button_color || null,
+      buttonEmoji: data.button_emoji || null,
+      buttonImageUrl: data.button_image_url || null,
       createdAt: formatTimestamp(data.created_at),
     };
   }
@@ -351,6 +356,40 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error("Error updating ownership link:", error);
       throw new Error(`Failed to update ownership link: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+
+  async updateOwnershipVisuals(ownershipId: string, visuals: UpdateOwnershipVisuals): Promise<ButtonOwnership> {
+    try {
+      const supabase = getSupabaseClient();
+      
+      const updateData: any = {};
+      if (visuals.buttonColor !== undefined) {
+        updateData.button_color = visuals.buttonColor || null;
+      }
+      if (visuals.buttonEmoji !== undefined) {
+        updateData.button_emoji = visuals.buttonEmoji || null;
+      }
+      if (visuals.buttonImageUrl !== undefined) {
+        updateData.button_image_url = visuals.buttonImageUrl || null;
+      }
+
+      const { data, error } = await supabase
+        .from('button_ownerships')
+        .update(updateData)
+        .eq('id', ownershipId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error updating ownership visuals:", error);
+        throw new Error(`Failed to update ownership visuals: ${error.message}`);
+        }
+
+      return this.mapOwnership(data);
+    } catch (error) {
+      console.error("Error updating ownership visuals:", error);
+      throw error;
     }
   }
 }

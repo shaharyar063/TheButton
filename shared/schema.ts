@@ -10,6 +10,9 @@ export const buttonOwnerships = pgTable("button_ownerships", {
   startsAt: timestamp("starts_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   durationSeconds: integer("duration_seconds").notNull().default(3600),
+  buttonColor: text("button_color"),
+  buttonEmoji: text("button_emoji"),
+  buttonImageUrl: text("button_image_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -57,6 +60,23 @@ export const insertLinkSchema = createInsertSchema(links).omit({
 export const updateLinkSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
 });
+
+export const updateOwnershipVisualsSchema = z.object({
+  buttonColor: z.string().optional(),
+  buttonEmoji: z.string().optional(),
+  buttonImageUrl: z.string().url().optional(),
+}).refine(
+  (data) => {
+    const hasImage = !!data.buttonImageUrl;
+    const hasColorOrEmoji = !!data.buttonColor || !!data.buttonEmoji;
+    return !hasImage || !hasColorOrEmoji;
+  },
+  {
+    message: "Cannot set image with color or emoji. Choose image OR color/emoji.",
+  }
+);
+
+export type UpdateOwnershipVisuals = z.infer<typeof updateOwnershipVisualsSchema>;
 
 export const insertClickSchema = createInsertSchema(clicks).omit({
   id: true,
