@@ -1,4 +1,4 @@
-# 🚀 Ready to Deploy to Vercel
+# 🚀 Ready to Deploy to Ver
 
 ## ✅ What's Fixed
 
