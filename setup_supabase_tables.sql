@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS button_ownerships (
   starts_at TIMESTAMP NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMP NOT NULL,
   duration_seconds INTEGER NOT NULL DEFAULT 3600,
+  button_color TEXT,
+  button_emoji TEXT,
+  button_image_url TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
