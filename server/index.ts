@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
 import { createExpressApp } from "./app";
+import { startOwnershipExpiryChecker } from "./scheduler";
 
 const app = createExpressApp();
 
@@ -37,6 +38,8 @@ app.use((req, res, next) => {
 
 (async () => {
   await initializeDatabase();
+  
+  startOwnershipExpiryChecker();
 
   const server = createServer(app);
 

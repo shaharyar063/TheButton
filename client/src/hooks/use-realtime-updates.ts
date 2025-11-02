@@ -8,6 +8,7 @@ export function useRealtimeUpdates() {
     const pollForUpdates = () => {
       queryClient.invalidateQueries({ queryKey: ["/api/current-link"] });
       queryClient.invalidateQueries({ queryKey: ["/api/recent-clicks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ownerships/current"] });
     };
 
     console.log("✅ Polling for updates every 5 seconds");
