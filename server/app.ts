@@ -66,19 +66,22 @@ export function createExpressApp(): Express {
     const link = await storage.getCurrentLink();
     
     if (link) {
+      const escapedUrl = escapeHtml(link.url);
+      const escapedBaseUrl = escapeHtml(baseUrl);
+      
       return res.send(`
         <!DOCTYPE html>
         <html>
           <head>
             <meta property="fc:frame" content="vNext" />
-            <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
+            <meta property="fc:frame:image" content="${escapedBaseUrl}/api/frame/image" />
             <meta property="fc:frame:image:aspect_ratio" content="1.91:1" />
             <meta property="fc:frame:button:1" content="Open Link" />
             <meta property="fc:frame:button:1:action" content="link" />
-            <meta property="fc:frame:button:1:target" content="${link.url}" />
+            <meta property="fc:frame:button:1:target" content="${escapedUrl}" />
             <meta property="og:title" content="Mystery Link Button" />
             <meta property="og:description" content="Click to open the mystery link!" />
-            <meta property="og:image" content="${baseUrl}/api/frame/image" />
+            <meta property="og:image" content="${escapedBaseUrl}/api/frame/image" />
           </head>
           <body>
             <h1>Mystery Link Button</h1>
@@ -88,19 +91,20 @@ export function createExpressApp(): Express {
       `);
     }
     
+    const escapedBaseUrl = escapeHtml(baseUrl);
     return res.send(`
       <!DOCTYPE html>
       <html>
         <head>
           <meta property="fc:frame" content="vNext" />
-          <meta property="fc:frame:image" content="${baseUrl}/api/frame/image" />
+          <meta property="fc:frame:image" content="${escapedBaseUrl}/api/frame/image" />
           <meta property="fc:frame:image:aspect_ratio" content="1.91:1" />
           <meta property="fc:frame:button:1" content="Visit App" />
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="${baseUrl}" />
+          <meta property="fc:frame:button:1:target" content="${escapedBaseUrl}" />
           <meta property="og:title" content="Mystery Link Button" />
           <meta property="og:description" content="Be the first to add a mystery link!" />
-          <meta property="og:image" content="${baseUrl}/api/frame/image" />
+          <meta property="og:image" content="${escapedBaseUrl}/api/frame/image" />
         </head>
         <body>
           <h1>Mystery Link Button</h1>
@@ -191,6 +195,7 @@ export function createExpressApp(): Express {
 
   app.post("/api/frame/action", async (req, res) => {
     const baseUrl = getBaseUrl();
+    const escapedBaseUrl = escapeHtml(baseUrl);
     
     try {
       const link = await storage.getCurrentLink();
@@ -201,10 +206,10 @@ export function createExpressApp(): Express {
           <html>
             <head>
               <meta property="fc:frame" content="vNext" />
-              <meta property="fc:frame:image" content="${baseUrl}/api/frame/image/nolink" />
+              <meta property="fc:frame:image" content="${escapedBaseUrl}/api/frame/image/nolink" />
               <meta property="fc:frame:button:1" content="Open App to Add Link" />
               <meta property="fc:frame:button:1:action" content="link" />
-              <meta property="fc:frame:button:1:target" content="${baseUrl}" />
+              <meta property="fc:frame:button:1:target" content="${escapedBaseUrl}" />
             </head>
             <body></body>
           </html>
@@ -283,6 +288,10 @@ export function createExpressApp(): Express {
       }
 
       if (buttonIndex === 1) {
+        if (!isValidHttpUrl(link.url)) {
+          console.error(`Invalid redirect URL in frame action: ${link.url}`);
+          return res.status(400).send('Invalid URL');
+        }
         res.setHeader('Location', link.url);
         return res.status(302).send();
       }
@@ -292,10 +301,10 @@ export function createExpressApp(): Express {
         <html>
           <head>
             <meta property="fc:frame" content="vNext" />
-            <meta property="fc:frame:image" content="${baseUrl}/api/frame/image/success" />
+            <meta property="fc:frame:image" content="${escapedBaseUrl}/api/frame/image/success" />
             <meta property="fc:frame:button:1" content="🔗 Open Link" />
             <meta property="fc:frame:button:2" content="🔄 Click Again" />
-            <meta property="fc:frame:post_url" content="${baseUrl}/api/frame/action" />
+            <meta property="fc:frame:post_url" content="${escapedBaseUrl}/api/frame/action" />
           </head>
           <body></body>
         </html>
@@ -308,9 +317,9 @@ export function createExpressApp(): Express {
         <html>
           <head>
             <meta property="fc:frame" content="vNext" />
-            <meta property="fc:frame:image" content="${baseUrl}/api/frame/image/error" />
+            <meta property="fc:frame:image" content="${escapedBaseUrl}/api/frame/image/error" />
             <meta property="fc:frame:button:1" content="Try Again" />
-            <meta property="fc:frame:post_url" content="${baseUrl}/api/frame/action" />
+            <meta property="fc:frame:post_url" content="${escapedBaseUrl}/api/frame/action" />
           </head>
           <body></body>
         </html>
