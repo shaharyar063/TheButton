@@ -52,19 +52,50 @@ export const insertLinkSchema = createInsertSchema(links).omit({
   id: true,
   createdAt: true,
 }).extend({
-  url: z.string().url("Please enter a valid URL"),
+  url: z.string().url("Please enter a valid URL").refine(
+    (url) => {
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    { message: "Only http:// and https:// URLs are allowed" }
+  ),
   submittedBy: z.string().min(1, "Submitter address required"),
   txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Invalid transaction hash"),
 });
 
 export const updateLinkSchema = z.object({
-  url: z.string().url("Please enter a valid URL"),
+  url: z.string().url("Please enter a valid URL").refine(
+    (url) => {
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    { message: "Only http:// and https:// URLs are allowed" }
+  ),
 });
 
 export const updateOwnershipVisualsSchema = z.object({
   buttonColor: z.string().optional(),
   buttonEmoji: z.string().optional(),
-  buttonImageUrl: z.string().url().optional(),
+  buttonImageUrl: z.string().url().refine(
+    (url) => {
+      if (!url) return true;
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    { message: "Only http:// and https:// URLs are allowed" }
+  ).optional(),
 }).refine(
   (data) => {
     const hasImage = !!data.buttonImageUrl;
