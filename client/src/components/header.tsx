@@ -32,7 +32,7 @@ export function Header({ onAddLinkClick }: HeaderProps) {
             data-testid="button-add-link"
           >
             <LinkIcon className="w-5 h-5 mr-2" />
-            <span>Add Your Link</span>
+            <span>Buy Button</span>
           </Button>
         </motion.div>
 
