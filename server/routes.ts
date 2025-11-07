@@ -538,6 +538,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/total-clicks", async (req, res) => {
+    try {
+      const count = await storage.getTotalClickCount();
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching total clicks:", error);
+      res.status(500).json({ error: "Failed to fetch total clicks" });
+    }
+  });
+
   app.post("/api/clicks", async (req, res) => {
     try {
       const clickData = {

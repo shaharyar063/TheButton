@@ -18,6 +18,10 @@ export function useRealtimeUpdates() {
         queryKey: ["/api/ownerships/current"],
         type: 'active'
       });
+      queryClient.refetchQueries({ 
+        queryKey: ["/api/total-clicks"],
+        type: 'active'
+      });
     };
 
     console.log("✅ Polling for updates every 5 seconds (silent background refresh)");

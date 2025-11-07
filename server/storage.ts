@@ -29,6 +29,7 @@ export interface IStorage {
   getCurrentLink(): Promise<Link | undefined>;
   createLink(link: InsertLink): Promise<Link>;
   getRecentClicks(limit?: number): Promise<Click[]>;
+  getTotalClickCount(): Promise<number>;
   createClick(click: InsertClick): Promise<Click>;
   
   // Ownership methods
@@ -107,6 +108,25 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error("Error fetching clicks:", error);
       return [];
+    }
+  }
+
+  async getTotalClickCount(): Promise<number> {
+    try {
+      const supabase = getSupabaseClient();
+      const { count, error } = await supabase
+        .from('clicks')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error("Error fetching click count:", error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error("Error fetching click count:", error);
+      return 0;
     }
   }
 

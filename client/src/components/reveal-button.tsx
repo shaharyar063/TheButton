@@ -1,5 +1,7 @@
 import { ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedCounter } from "./animated-counter";
+import { useQuery } from "@tanstack/react-query";
 
 interface RevealButtonProps {
   onClick: () => void;
@@ -14,6 +16,11 @@ export function RevealButton({ onClick, isLoading, hasLink, buttonColor, buttonE
   const defaultColor = "#3b82f6";
   const effectiveColor = buttonColor || defaultColor;
   
+  const totalClicksQuery = useQuery<{ count: number }>({
+    queryKey: ["/api/total-clicks"],
+  });
+  const totalClicks = totalClicksQuery.data?.count || 0;
+  
   const darkenColor = (color: string, amount: number = 40) => {
     const num = parseInt(color.replace("#", ""), 16);
     const r = Math.max(0, (num >> 16) - amount);
@@ -25,9 +32,7 @@ export function RevealButton({ onClick, isLoading, hasLink, buttonColor, buttonE
   const shadowColor = darkenColor(effectiveColor);
   return (
     <div className="flex flex-col items-center gap-8">
-      <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
-        What's the Link?
-      </h2>
+      <AnimatedCounter value={totalClicks} />
 
       <button
         onClick={onClick}
