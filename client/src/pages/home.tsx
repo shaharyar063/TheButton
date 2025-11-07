@@ -40,13 +40,13 @@ export default function Home() {
     retry: false,
   });
   const ownership = ownershipQuery.data;
-  const ownershipLoading = ownershipQuery.isPending && ownershipQuery.data === undefined;
+  const ownershipLoading = ownershipQuery.isFetching && !ownershipQuery.isFetched;
 
   const clicksQuery = useQuery<(Click & { link?: Link })[]>({
     queryKey: ["/api/recent-clicks"],
   });
   const recentClicks = clicksQuery.data || [];
-  const clicksLoading = clicksQuery.isPending && clicksQuery.data === undefined;
+  const clicksLoading = clicksQuery.isFetching && !clicksQuery.isFetched;
 
   const { data: baseUrlData } = useQuery<{ baseUrl: string }>({
     queryKey: ["/api/base-url"],
