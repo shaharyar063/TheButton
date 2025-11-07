@@ -35,14 +35,18 @@ export default function Home() {
 
   useRealtimeUpdates();
 
-  const { data: ownership, isLoading: ownershipLoading } = useQuery<ActiveOwnership>({
+  const ownershipQuery = useQuery<ActiveOwnership>({
     queryKey: ["/api/ownerships/current"],
     retry: false,
   });
+  const ownership = ownershipQuery.data;
+  const ownershipLoading = ownershipQuery.isPending && ownershipQuery.data === undefined;
 
-  const { data: recentClicks = [], isLoading: clicksLoading } = useQuery<(Click & { link?: Link })[]>({
+  const clicksQuery = useQuery<(Click & { link?: Link })[]>({
     queryKey: ["/api/recent-clicks"],
   });
+  const recentClicks = clicksQuery.data || [];
+  const clicksLoading = clicksQuery.isPending && clicksQuery.data === undefined;
 
   const { data: baseUrlData } = useQuery<{ baseUrl: string }>({
     queryKey: ["/api/base-url"],
