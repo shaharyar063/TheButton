@@ -6,12 +6,21 @@ export function useRealtimeUpdates() {
 
   useEffect(() => {
     const pollForUpdates = () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/current-link"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/recent-clicks"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/ownerships/current"] });
+      queryClient.refetchQueries({ 
+        queryKey: ["/api/current-link"],
+        type: 'active'
+      });
+      queryClient.refetchQueries({ 
+        queryKey: ["/api/recent-clicks"],
+        type: 'active'
+      });
+      queryClient.refetchQueries({ 
+        queryKey: ["/api/ownerships/current"],
+        type: 'active'
+      });
     };
 
-    console.log("✅ Polling for updates every 5 seconds");
+    console.log("✅ Polling for updates every 5 seconds (silent background refresh)");
     intervalRef.current = window.setInterval(pollForUpdates, 5000);
 
     return () => {
