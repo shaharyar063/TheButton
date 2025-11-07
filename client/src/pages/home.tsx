@@ -243,10 +243,10 @@ export default function Home() {
     
     if (!ownership?.link) {
       toast({
-        title: "No link available",
-        description: isOwner ? "Set your link first!" : "No one has set a link yet.",
-        variant: "destructive",
+        title: "No link yet!",
+        description: "Buy button ownership to add your link",
       });
+      setIsBuyModalOpen(true);
       return;
     }
 

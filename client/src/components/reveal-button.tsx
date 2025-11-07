@@ -36,7 +36,7 @@ export function RevealButton({ onClick, isLoading, hasLink, buttonColor, buttonE
 
       <button
         onClick={onClick}
-        disabled={isLoading || !hasLink}
+        disabled={isLoading}
         className={cn(
           "relative w-64 h-64 sm:w-80 sm:h-80 rounded-full",
           "transition-all duration-100 ease-linear",
@@ -55,7 +55,7 @@ export function RevealButton({ onClick, isLoading, hasLink, buttonColor, buttonE
           transform: "translateY(0px)",
         }}
         onMouseDown={(e) => {
-          if (!isLoading && hasLink) {
+          if (!isLoading) {
             e.currentTarget.style.transform = "translateY(8px)";
             e.currentTarget.style.boxShadow = `
               inset 0px 4px 12px rgba(0, 0, 0, 0.5),
